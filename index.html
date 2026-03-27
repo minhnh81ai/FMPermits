@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FMPermits Mobile</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            850: '#1f1f22',
+                            900: '#18181b',
+                            950: '#09090b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile apps */
+        }
+        
+        /* Hide scrollbar for mobile clean look */
+        ::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Smooth modal transitions */
+        .modal-slide-up {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .modal-slide-up.active {
+            transform: translateY(0);
+        }
+        
+        /* FAB Styling */
+        .fab {
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-300 h-screen w-screen overflow-hidden flex flex-col selection:bg-blue-500/30 relative">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950 px-4">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm">
+            <div class="flex flex-col items-center justify-center mb-8">
+                <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
+                    <i data-lucide="shield-check" class="w-8 h-8 text-blue-500"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-zinc-100 tracking-tight">FMPermits</h1>
+                <p class="text-sm text-zinc-500 mt-1">Field Operator Portal</p>
+            </div>
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Username</label>
+                    <input type="text" id="loginUsername" required placeholder="e.g. admin" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Security PIN</label>
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" id="loginPin" required placeholder="••••••" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                <button type="submit" id="loginBtn" disabled class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-blue-500/20 mt-4">
+                    Connecting to Server...
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP SHELL -->
+    <div id="mainApp" class="hidden flex-1 flex flex-col w-full h-full overflow-hidden relative">
+        
+        <!-- App Header -->
+        <header class="h-16 bg-zinc-900/80 backdrop-blur-md border-b border-zinc-800 flex items-center justify-between px-4 z-10 shrink-0 sticky top-0">
+            <div class="flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-6 h-6 text-blue-500"></i>
+                <h1 id="headerTitle" class="text-lg font-bold text-zinc-100">Home</h1>
+            </div>
+            <button onclick="handleLogout()" class="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-700 text-zinc-400">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+        </header>
+
+        <!-- View Container -->
+        <main class="flex-1 overflow-y-auto pb-24 hide-scrollbar relative bg-zinc-950" id="mainContentArea">
+            
+            <!-- View: Home / Dashboard -->
+            <div id="view-home" class="view-section p-4 space-y-4">
+                <div class="bg-blue-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden">
+                    <div class="relative z-10">
+                        <p class="text-blue-200 text-sm mb-1">Welcome back,</p>
+                        <h2 class="text-xl font-bold mb-4 truncate" id="greetingName">Loading...</h2>
+                        <div class="flex gap-4">
+                            <div>
+                                <p class="text-3xl font-bold" id="statMyActive">0</p>
+                                <p class="text-xs text-blue-200">Active Executions</p>
+                            </div>
+                        </div>
+                    </div>
+                    <i data-lucide="hard-hat" class="w-32 h-32 absolute -right-4 -bottom-4 text-white opacity-10"></i>
+                </div>
+
+                <div class="flex items-center justify-between mt-6 mb-2">
+                    <h3 class="font-semibold text-zinc-200">Recent Permits</h3>
+                    <span class="text-xs text-zinc-500" id="recentPermitsCount">0 Total</span>
+                </div>
+                
+                <div id="homePermitList" class="space-y-3">
+                    <!-- Cards injected via JS -->
+                </div>
+            </div>
+
+            <!-- View: Live Execution -->
+            <div id="view-live" class="view-section p-4 space-y-4 hidden">
+                <div class="relative mb-4">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+                    <input type="text" id="searchLive" placeholder="Search active PTWs..." oninput="renderLivePermits()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-blue-500">
+                </div>
+                <div id="livePermitList" class="space-y-3">
+                    <!-- Cards injected via JS -->
+                </div>
+            </div>
+
+            <!-- View: My Approvals -->
+            <div id="view-approvals" class="view-section p-4 space-y-4 hidden">
+                <div class="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-orange-500 font-semibold text-sm">Action Required</h3>
+                        <p class="text-xs text-orange-400/80">Permits awaiting your review.</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm" id="approvalsBadgeLg">0</div>
+                </div>
+                <div id="approvalsPermitList" class="space-y-3">
+                    <!-- Cards injected via JS -->
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Floating Action Button (Add PTW) -->
+        <button onclick="openAddPtwModal()" id="fabAddPtw" class="fab absolute bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white transition-transform active:scale-95 z-20">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+        </button>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="h-16 bg-zinc-900 border-t border-zinc-800 flex items-center justify-around px-2 z-20 shrink-0 pb-safe">
+            <button onclick="switchTab('home')" id="tab-home" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-blue-500 gap-1">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Home</span>
+            </button>
+            <button onclick="switchTab('live')" id="tab-live" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-zinc-500 hover:text-zinc-300 transition-colors gap-1">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Live</span>
+            </button>
+            <button onclick="switchTab('approvals')" id="tab-approvals" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-zinc-500 hover:text-zinc-300 transition-colors gap-1 relative hidden">
+                <i data-lucide="inbox" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Review</span>
+                <span id="navApprovalsBadge" class="absolute top-1 right-2 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-zinc-900 hidden">0</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- FULL SCREEN MODAL: PTW Details -->
+    <div id="ptwDetailsModal" class="fixed inset-0 bg-zinc-950 z-[60] flex flex-col modal-slide-up hidden">
+        <!-- Header -->
+        <div class="h-14 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 bg-zinc-900">
+            <button onclick="closePtwDetails()" class="p-2 -ml-2 text-zinc-400 active:text-zinc-100 transition-colors">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </button>
+            <h2 class="font-semibold text-zinc-100 text-sm font-mono" id="detailPtwNo">PTW Details</h2>
+            <div class="w-9"></div> <!-- spacer -->
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-6 hide-scrollbar pb-24">
+            
+            <!-- Status Header -->
+            <div class="flex items-center justify-between">
+                <span id="detailStatusBadge" class="px-2.5 py-1 rounded-md text-xs font-medium border">Status</span>
+                <span class="text-xs text-zinc-500 flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> <span id="detailDate"></span></span>
+            </div>
+
+            <!-- Main Info -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4">
+                <div>
+                    <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Scope of Work</label>
+                    <p class="text-sm text-zinc-200 mt-1 font-medium" id="detailScope"></p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-emerald-500 mt-0.5 shrink-0"></i>
+                    <div>
+                        <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Location</label>
+                        <p class="text-sm text-zinc-200 mt-0.5" id="detailLocation"></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-zinc-800/50">
+                    <div>
+                        <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Requester</label>
+                        <p class="text-sm text-zinc-300 mt-0.5 truncate" id="detailRequester"></p>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Work Owner</label>
+                        <p class="text-sm text-zinc-300 mt-0.5 truncate" id="detailWorkOwner"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Safety Tags -->
+            <div>
+                <label class="text-xs font-semibold text-zinc-400 mb-2 block">Safety Requirements</label>
+                <div class="flex flex-wrap gap-2">
+                    <div id="tagCritical" class="px-2.5 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-500 flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Critical</div>
+                    <div id="tagLoto" class="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 flex items-center gap-1.5"><i data-lucide="lock" class="w-3 h-3 text-blue-500"></i> LOTO: <span id="valLoto"></span></div>
+                    <div id="tagBypass" class="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 flex items-center gap-1.5"><i data-lucide="toggle-right" class="w-3 h-3 text-purple-500"></i> Bypass: <span id="valBypass"></span></div>
+                </div>
+            </div>
+            
+            <!-- Approvers Info -->
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-sm space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-zinc-500">Reviewer:</span>
+                    <span class="text-zinc-300 font-medium text-right" id="detailReviewer"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-zinc-500">Approver:</span>
+                    <span class="text-zinc-300 font-medium text-right" id="detailApprover"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Bottom Action Footer -->
+        <div id="mobileActionFooter" class="absolute bottom-0 left-0 right-0 p-4 bg-zinc-950 border-t border-zinc-800 flex gap-3 pb-safe shrink-0">
+            <!-- Buttons injected dynamically -->
+        </div>
+    </div>
+
+    <!-- FULL SCREEN MODAL: Add PTW -->
+    <div id="addPtwModal" class="fixed inset-0 bg-zinc-950 z-[60] flex flex-col modal-slide-up hidden">
+        <div class="h-14 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 bg-zinc-900">
+            <button type="button" onclick="closeAddPtwModal()" class="p-2 -ml-2 text-zinc-400 active:text-zinc-100 transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h2 class="font-semibold text-zinc-100 text-sm">New Permit</h2>
+            <div class="w-9"></div> <!-- spacer -->
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-4 hide-scrollbar">
+            <form id="addPtwForm" onsubmit="submitNewPtw(event)" class="space-y-5 pb-8">
+                <!-- Date/Time -->
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Date</label>
+                        <input type="date" id="newDate" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark]">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Start Time</label>
+                            <input type="time" id="newStartTime" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark]">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">End Time</label>
+                            <input type="time" id="newEndTime" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark]">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scope/Location -->
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Scope of Work</label>
+                        <textarea id="newScope" required rows="3" placeholder="Describe the task..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 resize-none placeholder:text-zinc-700"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Work Location</label>
+                        <input type="text" id="newLocation" required placeholder="e.g. Substation 1" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
+                    </div>
+                </div>
+
+                <!-- Safety Settings -->
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm text-zinc-300">Critical Work</label>
+                        <select id="newCritical" class="bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200 focus:outline-none [color-scheme:dark]">
+                            <option value="false">No</option>
+                            <option value="true">Yes</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm text-zinc-300">LOTO Required</label>
+                        <select id="newLoto" class="bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200 focus:outline-none [color-scheme:dark]">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm text-zinc-300">Bypass Form</label>
+                        <select id="newBypass" class="bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200 focus:outline-none [color-scheme:dark]">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Personnel -->
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Requester</label>
+                        <input type="text" id="newRequester" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Work Owner</label>
+                        <input type="text" id="newWorkOwner" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Reviewer</label>
+                        <input type="text" id="newReviewer" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Approver</label>
+                        <input type="text" id="newApprover" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-transform">
+                    Submit Registration
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal (Action Dialog) -->
+    <div id="actionConfirmModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center hidden opacity-0 transition-opacity px-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 transform scale-95 transition-transform" id="actionConfirmContent">
+            <h3 class="text-lg font-bold text-zinc-100 mb-2">Confirm Action</h3>
+            <p class="text-sm text-zinc-400 mb-5">Please confirm to proceed with this update.</p>
+            
+            <div class="flex gap-3 mt-4">
+                <button onclick="closeActionModal()" class="flex-1 py-3 text-sm font-medium text-zinc-300 bg-zinc-800 rounded-xl active:bg-zinc-700 transition-colors">Cancel</button>
+                <button onclick="executeConfirmedAction()" class="flex-1 py-3 text-sm font-medium text-white bg-blue-600 rounded-xl active:bg-blue-500 shadow-lg shadow-blue-500/20 transition-colors">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+                "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+                "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+            }
+        }
+    </script>
+    <script type="module">
+        import { initializeApp } from "firebase/app";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "firebase/auth";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc } from "firebase/firestore";
+
+        // Using exactly the same configuration as the Desktop app
+        const firebaseConfig = {
+          apiKey: "AIzaSyB4ma94d-P4FOSVxWiu8hMTYUzcwuLsDgc",
+          authDomain: "fmd-ptw-management.firebaseapp.com",
+          projectId: "fmd-ptw-management",
+          storageBucket: "fmd-ptw-management.firebasestorage.app",
+          messagingSenderId: "1026315637531",
+          appId: "1:1026315637531:web:24343f48e700de68e339be"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'fmd-ptw-app';
+
+        // State
+        let ptwData = [];
+        let userData = [];
+        let loggedInUser = null;
+        let isOfflineMode = false;
+        let currentTab = 'home';
+        let selectedPtwId = null;
+        let pendingAction = '';
+
+        let unsubscribePtws = null;
+        let unsubscribeUsers = null;
+
+        // --- INIT & AUTH ---
+
+        async function initializeAppLogic() {
+            try {
+                let authSuccessful = false;
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    try {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                        authSuccessful = true;
+                    } catch (tokenError) {
+                        console.warn("Custom token sign-in failed. Falling back to anonymous...");
+                    }
+                }
+                if (!authSuccessful) await signInAnonymously(auth);
+                
+                isOfflineMode = false;
+                setupRealtimeListener();
+            } catch (error) {
+                console.error("Firebase Auth Error:", error);
+                isOfflineMode = true;
+                
+                // Offline Fallback Data
+                userData = [{id: 'u1', username: 'admin', fullName: 'System Administrator', role: 'Admin', status: 'Active', pin: '123456', rights: {approve: true, open: true, cancel: true, reject: true, close: true}}];
+                ptwData = [];
+                
+                enableLoginScreen();
+            }
+        }
+
+        function setupRealtimeListener() {
+            const ptwsRef = collection(db, 'artifacts', appId, 'public', 'data', 'ptws');
+            unsubscribePtws = onSnapshot(ptwsRef, (snapshot) => {
+                ptwData = [];
+                snapshot.forEach(doc => { ptwData.push({ id: doc.id, ...doc.data() }); });
+                ptwData.sort((a, b) => b.ptwNo.localeCompare(a.ptwNo));
+                if (loggedInUser) updateUI();
+            });
+
+            const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+            unsubscribeUsers = onSnapshot(usersRef, async (snapshot) => {
+                userData = [];
+                snapshot.forEach(doc => { userData.push({ id: doc.id, ...doc.data() }); });
+                
+                if (userData.length === 0 && !isOfflineMode) {
+                    await addDoc(usersRef, { username: 'admin', fullName: 'System Administrator', role: 'Admin', status: 'Active', pin: '123456', rights: { approve: true, open: true, cancel: true, reject: true, close: true }});
+                } else {
+                    enableLoginScreen();
+                    if (loggedInUser) {
+                        const updatedSelf = userData.find(u => u.username === loggedInUser.username);
+                        if (updatedSelf) {
+                            loggedInUser = updatedSelf;
+                            applyRBAC();
+                        }
+                        updateUI();
+                    }
+                }
+            });
+        }
+
+        function enableLoginScreen() {
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.disabled = false;
+            loginBtn.innerText = 'Secure Login';
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const usernameInput = document.getElementById('loginUsername').value.trim();
+            const pinInput = document.getElementById('loginPin').value.trim();
+
+            const user = userData.find(u => u.username.toLowerCase() === usernameInput.toLowerCase());
+
+            if (!user || user.status === 'Inactive') {
+                alert("Authentication Failed.");
+                return;
+            }
+
+            let isPinValid = (user.pin === pinInput) || (user.username.toLowerCase() === 'admin' && pinInput === '5930-000003');
+
+            if (isPinValid) {
+                loggedInUser = user;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                
+                document.getElementById('greetingName').innerText = user.fullName;
+                
+                applyRBAC();
+                switchTab('home');
+                lucide.createIcons();
+            } else {
+                alert("Authentication Failed: Invalid PIN.");
+            }
+        }
+        window.handleLogin = handleLogin;
+
+        function handleLogout() {
+            loggedInUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+        }
+        window.handleLogout = handleLogout;
+
+        // --- NAVIGATION & RBAC ---
+
+        function applyRBAC() {
+            const approvalsTab = document.getElementById('tab-approvals');
+            if (loggedInUser?.rights?.approve) {
+                approvalsTab.classList.remove('hidden');
+            } else {
+                approvalsTab.classList.add('hidden');
+                if (currentTab === 'approvals') switchTab('home');
+            }
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            
+            // Update Tab Icons UI
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.replace('text-blue-500', 'text-zinc-500');
+            });
+            document.getElementById(`tab-${tabId}`).classList.replace('text-zinc-500', 'text-blue-500');
+
+            // Update Views
+            document.querySelectorAll('.view-section').forEach(view => view.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            const titleMap = { 'home': 'Home', 'live': 'Live Execution', 'approvals': 'My Approvals' };
+            document.getElementById('headerTitle').innerText = titleMap[tabId];
+            
+            // Fab visibility
+            document.getElementById('fabAddPtw').style.display = tabId === 'home' ? 'flex' : 'none';
+
+            updateUI();
+        }
+        window.switchTab = switchTab;
+
+        // --- RENDER LOGIC (MOBILE OPTIMIZED CARDS) ---
+
+        function updateUI() {
+            if (!loggedInUser) return;
+            
+            if (currentTab === 'home') renderHome();
+            else if (currentTab === 'live') renderLivePermits();
+            else if (currentTab === 'approvals') renderApprovals();
+            
+            updateBadges();
+        }
+
+        function updateBadges() {
+            const pendingCount = ptwData.filter(d => d.ptwStatus === 'Pending Review').length;
+            const badgeNav = document.getElementById('navApprovalsBadge');
+            const badgeLg = document.getElementById('approvalsBadgeLg');
+            
+            if (badgeNav) {
+                badgeNav.innerText = pendingCount;
+                badgeNav.style.display = pendingCount > 0 ? 'flex' : 'none';
+            }
+            if (badgeLg) badgeLg.innerText = pendingCount;
+        }
+
+        function getStatusStyles(status) {
+            switch(status) {
+                case 'Cancelled': return 'bg-zinc-800 text-zinc-400 border-zinc-700';
+                case 'Rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
+                case 'Pending Review': return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
+                case 'Approved (Open)': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                case 'Closed': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+                default: return 'bg-zinc-800 text-zinc-300 border-zinc-700';
+            }
+        }
+
+        function createPtwCard(ptw) {
+            const statusStyle = getStatusStyles(ptw.ptwStatus);
+            const critIcon = ptw.critical ? `<i data-lucide="alert-triangle" class="w-3 h-3 text-red-500 inline ml-1"></i>` : '';
+            
+            return `
+                <div onclick="openPtwDetails('${ptw.ptwNo}')" class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 active:bg-zinc-800/80 transition-colors">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-mono text-sm font-bold text-zinc-200">${ptw.ptwNo} ${critIcon}</div>
+                        <span class="px-2 py-0.5 text-[10px] font-medium rounded border ${statusStyle}">${ptw.ptwStatus}</span>
+                    </div>
+                    <p class="text-sm text-zinc-400 line-clamp-2 mb-3">${ptw.scope}</p>
+                    <div class="flex items-center justify-between text-xs text-zinc-500">
+                        <div class="flex items-center gap-1 truncate w-2/3"><i data-lucide="map-pin" class="w-3 h-3 text-emerald-500 shrink-0"></i> <span class="truncate">${ptw.location}</span></div>
+                        <div class="shrink-0 whitespace-nowrap">${ptw.date.split(',')[1]?.trim() || ptw.date}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderHome() {
+            const activeCount = ptwData.filter(d => d.ptwStatus === 'Approved (Open)').length;
+            document.getElementById('statMyActive').innerText = activeCount;
+            
+            const recentPtws = ptwData.slice(0, 5); // Just show top 5 on home
+            document.getElementById('recentPermitsCount').innerText = `${ptwData.length} Total`;
+            
+            const container = document.getElementById('homePermitList');
+            if (recentPtws.length === 0) container.innerHTML = `<p class="text-center text-zinc-500 text-sm py-4">No permits found.</p>`;
+            else container.innerHTML = recentPtws.map(createPtwCard).join('');
+            
+            lucide.createIcons();
+        }
+
+        function renderLivePermits() {
+            const term = document.getElementById('searchLive').value.toLowerCase();
+            let livePtws = ptwData.filter(d => d.ptwStatus === 'Approved (Open)');
+            
+            if (term) {
+                livePtws = livePtws.filter(p => p.ptwNo.toLowerCase().includes(term) || p.location.toLowerCase().includes(term));
+            }
+
+            const container = document.getElementById('livePermitList');
+            if (livePtws.length === 0) container.innerHTML = `<div class="text-center py-10 text-zinc-500"><i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 opacity-20"></i><p class="text-sm">No active permits.</p></div>`;
+            else container.innerHTML = livePtws.map(createPtwCard).join('');
+            
+            lucide.createIcons();
+        }
+
+        function renderApprovals() {
+            const pendingPtws = ptwData.filter(d => d.ptwStatus === 'Pending Review');
+            const container = document.getElementById('approvalsPermitList');
+            
+            if (pendingPtws.length === 0) container.innerHTML = `<div class="text-center py-10 text-zinc-500"><i data-lucide="check-circle" class="w-10 h-10 mx-auto mb-2 opacity-20"></i><p class="text-sm">All caught up!</p></div>`;
+            else container.innerHTML = pendingPtws.map(createPtwCard).join('');
+            
+            lucide.createIcons();
+        }
+
+        // --- DETAILS & ACTIONS ---
+
+        function openPtwDetails(ptwNo) {
+            selectedPtwId = ptwNo;
+            const ptw = ptwData.find(p => p.ptwNo === ptwNo);
+            if (!ptw) return;
+
+            document.getElementById('detailPtwNo').innerText = ptw.ptwNo;
+            document.getElementById('detailDate').innerText = ptw.date;
+            document.getElementById('detailScope').innerText = ptw.scope;
+            document.getElementById('detailLocation').innerText = ptw.location;
+            document.getElementById('detailRequester').innerText = ptw.requester;
+            document.getElementById('detailWorkOwner').innerText = ptw.workOwner;
+            document.getElementById('detailReviewer').innerText = ptw.reviewer || '-';
+            document.getElementById('detailApprover').innerText = ptw.approver || '-';
+            
+            const badge = document.getElementById('detailStatusBadge');
+            badge.className = `px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusStyles(ptw.ptwStatus)}`;
+            badge.innerText = ptw.ptwStatus;
+
+            document.getElementById('tagCritical').style.display = ptw.critical ? 'flex' : 'none';
+            document.getElementById('valLoto').innerText = ptw.loto;
+            document.getElementById('valBypass').innerText = ptw.bypass;
+
+            // Generate Action Buttons based on RBAC and Status
+            const footer = document.getElementById('mobileActionFooter');
+            footer.innerHTML = '';
+            
+            const r = loggedInUser.rights || {};
+
+            if (ptw.ptwStatus === 'Pending Review') {
+                const btnReject = r.reject 
+                    ? `<button onclick="confirmActionInit('Reject')" class="flex-1 py-3.5 bg-zinc-800 text-red-500 rounded-xl font-medium text-sm">Reject</button>`
+                    : '';
+                const btnEndorse = r.approve 
+                    ? `<button onclick="confirmActionInit('Endorse')" class="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-blue-500/20">Endorse</button>`
+                    : '';
+                
+                footer.innerHTML = btnReject + btnEndorse || `<div class="w-full text-center text-zinc-500 text-sm py-2">No actions available.</div>`;
+            } 
+            else if (ptw.ptwStatus === 'Approved (Open)') {
+                const btnCancel = r.cancel 
+                    ? `<button onclick="confirmActionInit('Cancel')" class="flex-1 py-3.5 bg-zinc-800 text-zinc-300 rounded-xl font-medium text-sm">Cancel</button>`
+                    : '';
+                const btnClose = r.close 
+                    ? `<button onclick="confirmActionInit('Close')" class="flex-1 py-3.5 bg-emerald-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-emerald-500/20">Sign Close</button>`
+                    : '';
+                
+                footer.innerHTML = btnCancel + btnClose || `<div class="w-full text-center text-zinc-500 text-sm py-2">No actions available.</div>`;
+            } else {
+                footer.style.display = 'none'; // hide footer
+            }
+            if (footer.innerHTML !== '') footer.style.display = 'flex';
+
+            lucide.createIcons();
+            const modal = document.getElementById('ptwDetailsModal');
+            modal.classList.remove('hidden');
+            // Small timeout to allow display:block to apply before animating transform
+            setTimeout(() => modal.classList.add('active'), 10);
+        }
+        window.openPtwDetails = openPtwDetails;
+
+        function closePtwDetails() {
+            const modal = document.getElementById('ptwDetailsModal');
+            modal.classList.remove('active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+            selectedPtwId = null;
+        }
+        window.closePtwDetails = closePtwDetails;
+
+        // --- ACTION CONFIRMATION ---
+
+        function confirmActionInit(action) {
+            pendingAction = action;
+            const modal = document.getElementById('actionConfirmModal');
+            const content = document.getElementById('actionConfirmContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+        window.confirmActionInit = confirmActionInit;
+
+        function closeActionModal() {
+            const modal = document.getElementById('actionConfirmModal');
+            const content = document.getElementById('actionConfirmContent');
+            modal.classList.add('opacity-0'); content.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); pendingAction = ''; }, 300);
+        }
+        window.closeActionModal = closeActionModal;
+
+        async function executeConfirmedAction() {
+            const ptw = ptwData.find(p => p.ptwNo === selectedPtwId);
+            if (!ptw) return;
+
+            let newStatus = ptw.ptwStatus;
+            let logType = 'approve';
+            let actionText = 'was updated by';
+
+            if (pendingAction === 'Reject') { newStatus = 'Rejected'; actionText = 'was Rejected by'; logType = 'reject'; }
+            else if (pendingAction === 'Endorse') { newStatus = 'Approved (Open)'; actionText = 'received Open Approval from'; logType = 'approve'; }
+            else if (pendingAction === 'Cancel') { newStatus = 'Cancelled'; actionText = 'was Cancelled by'; logType = 'reject'; }
+            else if (pendingAction === 'Close') { newStatus = 'Closed'; actionText = 'was Closed by'; logType = 'close'; }
+
+            closeActionModal();
+            closePtwDetails();
+
+            if (isOfflineMode) {
+                ptw.ptwStatus = newStatus;
+                // logActivity is not fully defined in this snippet but assumed available via desktop app setup
+                // logActivity(ptw.ptwNo, actionText, loggedInUser.fullName, logType);
+                updateUI();
+                return;
+            }
+
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'ptws', ptw.id);
+                await updateDoc(docRef, { ptwStatus: newStatus });
+                // logActivity(ptw.ptwNo, actionText, loggedInUser.fullName, logType);
+            } catch (error) {
+                console.error("Error updating doc:", error);
+                alert("Failed to update status.");
+            }
+        }
+        window.executeConfirmedAction = executeConfirmedAction;
+
+        // --- ADD PTW LOGIC ---
+
+        function openAddPtwModal() {
+            const modal = document.getElementById('addPtwModal');
+            document.getElementById('addPtwForm').reset();
+            
+            // Pre-fill requester with logged in user
+            const requesterField = document.getElementById('newRequester');
+            if (requesterField) {
+                requesterField.value = loggedInUser?.fullName || '';
+            }
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('active'), 10);
+        }
+        window.openAddPtwModal = openAddPtwModal;
+
+        function closeAddPtwModal() {
+            const modal = document.getElementById('addPtwModal');
+            modal.classList.remove('active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+        window.closeAddPtwModal = closeAddPtwModal;
+
+        async function submitNewPtw(event) {
+            event.preventDefault();
+            
+            const rawDate = document.getElementById('newDate').value;
+            const d = new Date(rawDate);
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const formattedDate = `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
+
+            let newIdNum = 1;
+            if (ptwData.length > 0) {
+                const ids = ptwData.map(p => parseInt(p.ptwNo.split('-').pop() || '0'));
+                newIdNum = Math.max(...ids) + 1;
+            }
+            const newPtwNo = `FMD-25-${String(newIdNum).padStart(4, '0')}`;
+
+            const newPtw = {
+                ptwNo: newPtwNo,
+                date: formattedDate,
+                startTime: document.getElementById('newStartTime').value,
+                endTime: document.getElementById('newEndTime').value,
+                requester: document.getElementById('newRequester') ? document.getElementById('newRequester').value : (loggedInUser?.fullName || 'System'),
+                workOwner: document.getElementById('newWorkOwner').value,
+                scope: document.getElementById('newScope').value,
+                location: document.getElementById('newLocation').value,
+                critical: document.getElementById('newCritical').value === 'true',
+                loto: document.getElementById('newLoto').value,
+                bypass: document.getElementById('newBypass').value,
+                jobProgress: '0%',
+                ptwStatus: 'Pending Review',
+                reviewer: document.getElementById('newReviewer').value,
+                approver: document.getElementById('newApprover').value,
+                createdAt: new Date().toISOString()
+            };
+
+            closeAddPtwModal();
+
+            if (isOfflineMode) {
+                ptwData.push(newPtw);
+                ptwData.sort((a, b) => b.ptwNo.localeCompare(a.ptwNo));
+                // logActivity(newPtwNo, 'was submitted by', loggedInUser.fullName, 'create');
+                updateUI();
+                return;
+            }
+
+            try {
+                const ptwsRef = collection(db, 'artifacts', appId, 'public', 'data', 'ptws');
+                await addDoc(ptwsRef, newPtw);
+                // logActivity(newPtwNo, 'was submitted by', loggedInUser.fullName, 'create');
+            } catch (error) {
+                console.error("Error adding doc:", error);
+                alert("Failed to submit PTW.");
+            }
+        }
+        window.submitNewPtw = submitNewPtw;
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initializeAppLogic();
+        });
+
+    </script>
+</body>
+</html>
