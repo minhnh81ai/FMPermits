@@ -328,14 +328,6 @@
                         <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Work Owner</label>
                         <input type="text" id="newWorkOwner" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
                     </div>
-                    <div>
-                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Reviewer</label>
-                        <input type="text" id="newReviewer" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Approver</label>
-                        <input type="text" id="newApprover" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
-                    </div>
                 </div>
 
                 <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-transform">
@@ -808,8 +800,8 @@
                 bypass: document.getElementById('newBypass').value,
                 jobProgress: '0%',
                 ptwStatus: 'Pending Review',
-                reviewer: document.getElementById('newReviewer').value,
-                approver: document.getElementById('newApprover').value,
+                reviewer: '',
+                approver: '',
                 createdAt: new Date().toISOString()
             };
 
