@@ -131,7 +131,7 @@
             <div id="view-live" class="view-section p-4 space-y-4 hidden">
                 <div class="relative mb-4">
                     <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
-                    <input type="text" id="searchLive" placeholder="Search active PTWs..." oninput="renderLivePermits()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-blue-500">
+                    <input type="text" id="searchLive" placeholder="Search active PTWs or Scope..." oninput="renderLivePermits()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-blue-500">
                 </div>
                 <div id="livePermitList" class="space-y-3">
                     <!-- Cards injected via JS -->
@@ -201,7 +201,7 @@
             <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4">
                 <div>
                     <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Scope of Work</label>
-                    <p class="text-sm text-zinc-200 mt-1 font-medium" id="detailScope"></p>
+                    <p class="text-sm text-zinc-200 mt-1 font-medium leading-relaxed" id="detailScope"></p>
                 </div>
                 <div class="flex items-start gap-3">
                     <i data-lucide="map-pin" class="w-4 h-4 text-emerald-500 mt-0.5 shrink-0"></i>
@@ -232,15 +232,23 @@
                 </div>
             </div>
             
-            <!-- Approvers Info -->
+            <!-- Workflow Tracking -->
             <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-sm space-y-3">
                 <div class="flex justify-between">
-                    <span class="text-zinc-500">Reviewer:</span>
-                    <span class="text-zinc-300 font-medium text-right" id="detailReviewer"></span>
+                    <span class="text-zinc-500">Requester:</span>
+                    <span class="text-zinc-300 font-medium text-right" id="detailTrackRequester"></span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-zinc-500">Approver:</span>
-                    <span class="text-zinc-300 font-medium text-right" id="detailApprover"></span>
+                    <span class="text-zinc-300 font-medium text-right" id="detailTrackApprover"></span>
+                </div>
+                <div class="flex justify-between" id="trackOpenRow">
+                    <span class="text-zinc-500">Opened By:</span>
+                    <span class="text-zinc-300 font-medium text-right" id="detailTrackOpener"></span>
+                </div>
+                <div class="flex justify-between hidden" id="trackCloseRow">
+                    <span class="text-zinc-500" id="detailTrackFinalLabel">Closed By:</span>
+                    <span class="text-zinc-300 font-medium text-right" id="detailTrackFinal"></span>
                 </div>
             </div>
         </div>
@@ -571,7 +579,8 @@
                 case 'Cancelled': return 'bg-zinc-800 text-zinc-400 border-zinc-700';
                 case 'Rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
                 case 'Pending Review': return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
-                case 'Approved (Open)': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                case 'Approved': return 'bg-teal-500/10 text-teal-400 border-teal-500/20';
+                case 'Open': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
                 case 'Closed': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
                 default: return 'bg-zinc-800 text-zinc-300 border-zinc-700';
             }
@@ -588,7 +597,7 @@
                         <div class="font-mono text-sm font-bold text-zinc-200">${ptw.ptwNo} ${critIcon}</div>
                         <span class="px-2 py-0.5 text-[10px] font-medium rounded border ${statusStyle}">${ptw.ptwStatus}</span>
                     </div>
-                    <p class="text-sm text-zinc-400 line-clamp-2 mb-3">${ptw.scope}</p>
+                    <p class="text-sm text-zinc-400 line-clamp-2 mb-3 leading-relaxed">${ptw.scope}</p>
                     <div class="flex items-start justify-between text-xs text-zinc-500">
                         <div class="flex items-center gap-1 truncate w-3/5 pt-0.5"><i data-lucide="map-pin" class="w-3 h-3 text-emerald-500 shrink-0"></i> <span class="truncate">${ptw.location}</span></div>
                         <div class="shrink-0 whitespace-nowrap text-right flex flex-col items-end">
@@ -601,7 +610,7 @@
         }
 
         function renderHome() {
-            const activeCount = ptwData.filter(d => d.ptwStatus === 'Approved (Open)').length;
+            const activeCount = ptwData.filter(d => d.ptwStatus === 'Open').length;
             document.getElementById('statMyActive').innerText = activeCount;
             
             const pendingPtws = ptwData.filter(d => d.ptwStatus === 'Pending Review');
@@ -620,16 +629,15 @@
             const todayDateString = new Date().toDateString();
             
             let livePtws = ptwData.filter(d => {
-                if (d.ptwStatus !== 'Approved (Open)') return false;
+                if (d.ptwStatus !== 'Approved' && d.ptwStatus !== 'Open') return false;
                 
                 // Parse date logic to strictly check the scheduled execution date
                 let pDate = new Date(); // fallback
                 if (d.date) {
-                    const dateStr = d.date.split(',')[1]?.trim(); // e.g. extracts "30/03/26" from "Mon, 30/03/26"
+                    const dateStr = d.date.split(',')[1]?.trim(); 
                     if (dateStr) {
                         const parts = dateStr.split('/');
                         if (parts.length === 3) {
-                            // new Date(year, monthIndex, day)
                             pDate = new Date(2000 + parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
                         }
                     }
@@ -674,10 +682,31 @@
             document.getElementById('detailDate').innerText = ptw.date;
             document.getElementById('detailScope').innerText = ptw.scope;
             document.getElementById('detailLocation').innerText = ptw.location;
-            document.getElementById('detailRequester').innerText = ptw.requester;
-            document.getElementById('detailWorkOwner').innerText = ptw.workOwner;
-            document.getElementById('detailReviewer').innerText = ptw.reviewer || '-';
-            document.getElementById('detailApprover').innerText = ptw.approver || '-';
+            
+            // Workflow Tracking Population
+            document.getElementById('detailTrackRequester').innerText = ptw.requester || '-';
+            document.getElementById('detailTrackApprover').innerText = ptw.approvedBy ? ptw.approvedBy : 'Awaiting Approval';
+            document.getElementById('detailTrackOpener').innerText = ptw.openedBy ? ptw.openedBy : 'Awaiting Action';
+            
+            const closeRow = document.getElementById('trackCloseRow');
+            const finalLabel = document.getElementById('detailTrackFinalLabel');
+            const finalUser = document.getElementById('detailTrackFinal');
+            
+            if (ptw.ptwStatus === 'Closed') {
+                closeRow.classList.remove('hidden');
+                finalLabel.innerText = 'Closed By:';
+                finalUser.innerText = ptw.closedBy || '-';
+            } else if (ptw.ptwStatus === 'Cancelled') {
+                closeRow.classList.remove('hidden');
+                finalLabel.innerText = 'Cancelled By:';
+                finalUser.innerText = ptw.cancelledBy || '-';
+            } else if (ptw.ptwStatus === 'Rejected') {
+                closeRow.classList.remove('hidden');
+                finalLabel.innerText = 'Rejected By:';
+                finalUser.innerText = ptw.rejectedBy || '-';
+            } else {
+                closeRow.classList.add('hidden');
+            }
             
             const badge = document.getElementById('detailStatusBadge');
             badge.className = `px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusStyles(ptw.ptwStatus)}`;
@@ -698,17 +727,30 @@
                     ? `<button onclick="confirmActionInit('Reject')" class="flex-1 py-3.5 bg-zinc-800 text-red-500 rounded-xl font-medium text-sm">Reject</button>`
                     : '';
                 const btnEndorse = r.approve 
-                    ? `<button onclick="confirmActionInit('Endorse')" class="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-blue-500/20">Endorse</button>`
+                    ? `<button onclick="confirmActionInit('Approve_PTW')" class="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-blue-500/20">Approve</button>`
                     : '';
                 
                 footer.innerHTML = btnReject + btnEndorse || `<div class="w-full text-center text-zinc-500 text-sm py-2">No actions available.</div>`;
             } 
-            else if (ptw.ptwStatus === 'Approved (Open)') {
+            else if (ptw.ptwStatus === 'Approved') {
+                const btnCancel = r.cancel 
+                    ? `<button onclick="confirmActionInit('Cancel')" class="flex-1 py-3.5 bg-zinc-800 text-zinc-300 rounded-xl font-medium text-sm">Cancel</button>`
+                    : '';
+                const btnReject = r.reject 
+                    ? `<button onclick="confirmActionInit('Reject_Execution')" class="flex-1 py-3.5 bg-zinc-800 text-red-500 rounded-xl font-medium text-sm">Reject</button>`
+                    : '';
+                const btnOpen = r.open 
+                    ? `<button onclick="confirmActionInit('Open_PTW')" class="flex-[2] py-3.5 bg-teal-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-teal-500/20 flex items-center justify-center gap-1.5"><i data-lucide="play-circle" class="w-4 h-4"></i> Sign Open</button>`
+                    : '';
+                
+                footer.innerHTML = btnCancel + btnReject + btnOpen || `<div class="w-full text-center text-zinc-500 text-sm py-2">No actions available.</div>`;
+            }
+            else if (ptw.ptwStatus === 'Open') {
                 const btnCancel = r.cancel 
                     ? `<button onclick="confirmActionInit('Cancel')" class="flex-1 py-3.5 bg-zinc-800 text-zinc-300 rounded-xl font-medium text-sm">Cancel</button>`
                     : '';
                 const btnClose = r.close 
-                    ? `<button onclick="confirmActionInit('Close')" class="flex-1 py-3.5 bg-emerald-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-emerald-500/20">Sign Close</button>`
+                    ? `<button onclick="confirmActionInit('Close')" class="flex-[2] py-3.5 bg-emerald-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5"><i data-lucide="check-circle" class="w-4 h-4"></i> Sign Close</button>`
                     : '';
                 
                 footer.innerHTML = btnCancel + btnClose || `<div class="w-full text-center text-zinc-500 text-sm py-2">No actions available.</div>`;
@@ -759,27 +801,31 @@
             let newStatus = ptw.ptwStatus;
             let logType = 'approve';
             let actionText = 'was updated by';
+            let updatePayload = {};
+            const userFullName = loggedInUser?.fullName || 'System';
 
-            if (pendingAction === 'Reject') { newStatus = 'Rejected'; actionText = 'was Rejected by'; logType = 'reject'; }
-            else if (pendingAction === 'Endorse') { newStatus = 'Approved (Open)'; actionText = 'received Open Approval from'; logType = 'approve'; }
-            else if (pendingAction === 'Cancel') { newStatus = 'Cancelled'; actionText = 'was Cancelled by'; logType = 'reject'; }
-            else if (pendingAction === 'Close') { newStatus = 'Closed'; actionText = 'was Closed by'; logType = 'close'; }
+            if (pendingAction === 'Reject') { newStatus = 'Rejected'; actionText = 'was Rejected by'; logType = 'reject'; updatePayload.rejectedBy = userFullName; }
+            else if (pendingAction === 'Approve_PTW') { newStatus = 'Approved'; actionText = 'received Approval from'; logType = 'approve'; updatePayload.approvedBy = userFullName; updatePayload.approver = userFullName; }
+            else if (pendingAction === 'Open_PTW') { newStatus = 'Open'; actionText = 'was Opened for execution by'; logType = 'approve'; updatePayload.openedBy = userFullName; }
+            else if (pendingAction === 'Cancel') { newStatus = 'Cancelled'; actionText = 'was Cancelled during execution by'; logType = 'reject'; updatePayload.cancelledBy = userFullName; }
+            else if (pendingAction === 'Reject_Execution') { newStatus = 'Rejected'; actionText = 'was Rejected during execution by'; logType = 'reject'; updatePayload.rejectedBy = userFullName; }
+            else if (pendingAction === 'Close') { newStatus = 'Closed'; actionText = 'was Closed by'; logType = 'close'; updatePayload.closedBy = userFullName; }
+
+            updatePayload.ptwStatus = newStatus;
 
             closeActionModal();
             closePtwDetails();
 
             if (isOfflineMode) {
-                ptw.ptwStatus = newStatus;
-                // logActivity is not fully defined in this snippet but assumed available via desktop app setup
-                // logActivity(ptw.ptwNo, actionText, loggedInUser.fullName, logType);
+                Object.assign(ptw, updatePayload);
+                // logActivity is available via the shared DB logic when syncing
                 updateUI();
                 return;
             }
 
             try {
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'ptws', ptw.id);
-                await updateDoc(docRef, { ptwStatus: newStatus });
-                // logActivity(ptw.ptwNo, actionText, loggedInUser.fullName, logType);
+                await updateDoc(docRef, updatePayload);
             } catch (error) {
                 console.error("Error updating doc:", error);
                 alert("Failed to update status.");
@@ -888,7 +934,6 @@
             if (isOfflineMode) {
                 ptwData.push(newPtw);
                 ptwData.sort((a, b) => b.ptwNo.localeCompare(a.ptwNo));
-                // logActivity(newPtwNo, 'was submitted by', loggedInUser.fullName, 'create');
                 updateUI();
                 return;
             }
@@ -896,7 +941,6 @@
             try {
                 const ptwsRef = collection(db, 'artifacts', appId, 'public', 'data', 'ptws');
                 await addDoc(ptwsRef, newPtw);
-                // logActivity(newPtwNo, 'was submitted by', loggedInUser.fullName, 'create');
             } catch (error) {
                 console.error("Error adding doc:", error);
                 alert("Failed to submit PTW.");
