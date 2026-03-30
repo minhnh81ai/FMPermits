@@ -2,8 +2,8 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FMPermits Management Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FMPermits Mobile</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -29,669 +29,340 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Chart.js for Dashboard Graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        /* Custom scrollbar for dark theme */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #18181b; }
-        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile apps */
+        }
         
-        .selected-row { background-color: rgba(39, 39, 42, 0.8) !important; border-left: 4px solid #3b82f6; }
+        /* Hide scrollbar for mobile clean look */
+        ::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Smooth transitions */
-        .panel-transition { transition: all 0.3s ease-in-out; }
-        .view-panel { transition: opacity 0.2s ease; }
+        /* Smooth modal transitions */
+        .modal-slide-up {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .modal-slide-up.active {
+            transform: translateY(0);
+        }
+        
+        /* FAB Styling */
+        .fab {
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
     </style>
 </head>
-<body class="bg-zinc-950 text-zinc-300 h-screen w-screen overflow-hidden flex selection:bg-blue-500/30 relative">
+<body class="bg-zinc-950 text-zinc-300 h-screen w-screen overflow-hidden flex flex-col selection:bg-blue-500/30 relative">
 
     <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950">
-        <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all">
-            <div class="flex items-center justify-center gap-3 text-blue-500 font-bold text-2xl tracking-tight mb-8">
-                <i data-lucide="shield-check" class="w-8 h-8"></i>
-                FMPermits
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950 px-4">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm">
+            <div class="flex flex-col items-center justify-center mb-8">
+                <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
+                    <i data-lucide="shield-check" class="w-8 h-8 text-blue-500"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-zinc-100 tracking-tight">FMPermits</h1>
+                <p class="text-sm text-zinc-500 mt-1">Field Operator Portal</p>
             </div>
-            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Username</label>
-                    <input type="text" id="loginUsername" required placeholder="e.g. admin" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
+                    <input type="text" id="loginUsername" required placeholder="e.g. admin" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Security PIN</label>
-                    <input type="password" id="loginPin" required placeholder="••••••" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
+                    <input type="password" inputmode="numeric" pattern="[0-9]*" id="loginPin" required placeholder="••••••" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                 </div>
-                <button type="submit" id="loginBtn" disabled class="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20 mt-2">
+                <button type="submit" id="loginBtn" disabled class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-blue-500/20 mt-4">
                     Connecting to Server...
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- MAIN APP CONTAINER -->
-    <div id="mainApp" class="hidden flex-1 flex w-full h-full overflow-hidden">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col justify-between hidden md:flex z-10 shrink-0">
-            <div>
-                <div class="h-16 flex items-center px-6 border-b border-zinc-800">
-                    <div class="flex items-center gap-2 text-blue-500 font-bold text-xl tracking-tight">
-                        <i data-lucide="shield-check" class="w-6 h-6"></i>
-                        FMPermits
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 mt-4 px-2">Menu</div>
-                    <nav class="space-y-1" id="mainNav">
-                        <a href="#" data-target="dashboard" class="nav-link flex items-center gap-3 px-3 py-2 bg-blue-500/10 text-blue-400 rounded-lg font-medium transition-colors">
-                            <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
-                        </a>
-                        <a href="#" data-target="my-approvals" class="nav-link flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg transition-colors">
-                            <i data-lucide="inbox" class="w-5 h-5"></i> My Approvals
-                            <span class="ml-auto bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full" id="navPendingBadge" style="display: none;">0</span>
-                        </a>
-                        <a href="#" data-target="live-execution" class="nav-link flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg transition-colors">
-                            <i data-lucide="activity" class="w-5 h-5"></i> Live Execution
-                        </a>
-                        <a href="#" data-target="all-permits" class="nav-link flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg transition-colors">
-                            <i data-lucide="file-text" class="w-5 h-5"></i> All Permits
-                        </a>
-                    </nav>
-
-                    <!-- RBAC Hidden Administration Section -->
-                    <div id="adminSidebarSection" class="hidden">
-                        <div class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 mt-8 px-2">Administration</div>
-                        <nav class="space-y-1">
-                            <a href="#" data-target="users-roles" class="nav-link flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg transition-colors">
-                                <i data-lucide="users" class="w-5 h-5"></i> Users & Roles
-                            </a>
-                            <a href="#" class="flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg transition-colors" onclick="alert('Reports module locked for demo')">
-                                <i data-lucide="bar-chart-2" class="w-5 h-5"></i> Reports & Analytics
-                            </a>
-                        </nav>
-                    </div>
-                </div>
+    <!-- MAIN APP SHELL -->
+    <div id="mainApp" class="hidden flex-1 flex flex-col w-full h-full overflow-hidden relative">
+        
+        <!-- App Header -->
+        <header class="h-16 bg-zinc-900/80 backdrop-blur-md border-b border-zinc-800 flex items-center justify-between px-4 z-10 shrink-0 sticky top-0">
+            <div class="flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-6 h-6 text-blue-500"></i>
+                <h1 id="headerTitle" class="text-lg font-bold text-zinc-100">Home</h1>
             </div>
+            <button onclick="handleLogout()" class="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-700 text-zinc-400">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+        </header>
+
+        <!-- View Container -->
+        <main class="flex-1 overflow-y-auto pb-24 hide-scrollbar relative bg-zinc-950" id="mainContentArea">
             
-            <div class="p-4 border-t border-zinc-800">
-                <div class="flex items-center justify-between px-2">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700">
-                            <span id="currentUserInitials" class="font-semibold text-zinc-200">NA</span>
-                        </div>
-                        <div>
-                            <div id="currentUserFullName" class="text-sm font-medium text-zinc-100 truncate w-28">Loading...</div>
-                            <div id="currentUserRole" class="text-xs text-zinc-500 truncate w-28">Role</div>
+            <!-- View: Home / Dashboard -->
+            <div id="view-home" class="view-section p-4 space-y-4">
+                <div class="bg-blue-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden">
+                    <div class="relative z-10">
+                        <p class="text-blue-200 text-sm mb-1">Welcome back,</p>
+                        <h2 class="text-xl font-bold mb-4 truncate" id="greetingName">Loading...</h2>
+                        <div class="flex gap-4">
+                            <div>
+                                <p class="text-3xl font-bold" id="statMyActive">0</p>
+                                <p class="text-xs text-blue-200">Active Executions</p>
+                            </div>
                         </div>
                     </div>
-                    <button onclick="handleLogout()" class="text-zinc-500 hover:text-red-500 transition-colors p-1" title="Log Out">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
-                    </button>
+                    <i data-lucide="hard-hat" class="w-32 h-32 absolute -right-4 -bottom-4 text-white opacity-10"></i>
                 </div>
-            </div>
-        </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 flex flex-col min-w-0 bg-zinc-950 relative">
-            
-            <!-- Header -->
-            <header class="h-16 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-6 z-10 shrink-0">
-                <h1 id="pageTitle" class="text-xl font-semibold text-zinc-100">Dashboard Overview</h1>
+                <div class="flex items-center justify-between mt-6 mb-2">
+                    <h3 class="font-semibold text-zinc-200">Pending Review Permits</h3>
+                    <span class="text-xs text-zinc-500" id="recentPermitsCount">0 Total</span>
+                </div>
                 
-                <div class="flex items-center gap-4">
-                    <div class="relative hidden sm:block" id="searchContainer">
-                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
-                        <input type="text" id="searchInput" placeholder="Search PTW No, Location..." class="w-64 bg-zinc-950 border border-zinc-800 text-sm rounded-lg pl-9 pr-4 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-zinc-200 transition-all placeholder:text-zinc-600">
-                    </div>
-                    
-                    <button id="addPtwBtn" onclick="openAddPtwModal()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20">
-                        <i data-lucide="plus" class="w-4 h-4"></i> Add PTW
-                    </button>
-
-                    <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
-                    <button id="importBtn" onclick="triggerImport()" class="text-zinc-400 hover:text-zinc-100 transition-colors" title="Import CSV Database">
-                        <i data-lucide="upload" class="w-5 h-5"></i>
-                    </button>
-                    <button id="exportBtn" onclick="exportCSV()" class="text-zinc-400 hover:text-zinc-100 transition-colors" title="Export current view to CSV">
-                        <i data-lucide="download" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </header>
-
-            <!-- VIEW: DASHBOARD -->
-            <div id="view-dashboard" class="view-panel flex-1 overflow-auto p-6 bg-zinc-950">
-                <!-- Metrics Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex items-center gap-4">
-                        <div class="p-3 bg-blue-500/10 text-blue-500 rounded-lg">
-                            <i data-lucide="file-text" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <div class="text-xs text-zinc-400 font-medium uppercase tracking-wider">Total Permits</div>
-                            <div class="text-2xl font-bold text-zinc-100" id="statTotal">0</div>
-                        </div>
-                    </div>
-                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex items-center gap-4">
-                        <div class="p-3 bg-orange-500/10 text-orange-500 rounded-lg">
-                            <i data-lucide="clock" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <div class="text-xs text-zinc-400 font-medium uppercase tracking-wider">Pending Review</div>
-                            <div class="text-2xl font-bold text-zinc-100" id="statPending">0</div>
-                        </div>
-                    </div>
-                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex items-center gap-4">
-                        <div class="p-3 bg-emerald-500/10 text-emerald-500 rounded-lg">
-                            <i data-lucide="activity" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <div class="text-xs text-zinc-400 font-medium uppercase tracking-wider">Active Execution</div>
-                            <div class="text-2xl font-bold text-zinc-100" id="statActive">0</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Charts Section -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Status Chart -->
-                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col">
-                        <h3 class="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
-                            <i data-lucide="bar-chart" class="w-4 h-4 text-zinc-500"></i> Permit Status Distribution
-                        </h3>
-                        <div class="flex-1 relative min-h-[300px] w-full flex items-center justify-center">
-                            <canvas id="statusChart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <!-- Recent Activities -->
-                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col">
-                        <h3 class="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
-                            <i data-lucide="history" class="w-4 h-4 text-zinc-500"></i> Recent Activities
-                        </h3>
-                        <div class="flex-1 overflow-y-auto space-y-4 pr-2" id="auditLogContainer">
-                            <p class="text-zinc-500 text-sm italic text-center mt-4">Loading activity...</p>
-                        </div>
-                        <!-- Pagination Controls -->
-                        <div id="activityPagination" class="mt-4 flex justify-between items-center hidden pt-3 border-t border-zinc-800/50 shrink-0">
-                            <button onclick="prevActivityPage()" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
-                            <span id="activityPageIndicator" class="text-xs text-zinc-500">Page 1 / 1</span>
-                            <button onclick="nextActivityPage()" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Active Locations Table -->
-                <div class="mt-6 bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col">
-                    <h3 class="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
-                        <i data-lucide="map-pin" class="w-4 h-4 text-zinc-500"></i> Working Locations of Approved PTWs
-                    </h3>
-                    <div class="overflow-x-auto rounded-lg border border-zinc-800/50">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-zinc-950/50">
-                                <tr>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800/50">Location</th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800/50">PTW No.</th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800/50">Scope of Work</th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800/50">Work Owner</th>
-                                </tr>
-                            </thead>
-                            <tbody id="activeLocationsTableBody" class="divide-y divide-zinc-800/50">
-                                <!-- Injected via JS -->
-                            </tbody>
-                        </table>
-                    </div>
+                <div id="homePermitList" class="space-y-3">
+                    <!-- Cards injected via JS -->
                 </div>
             </div>
 
-            <!-- VIEW: DATA GRID (Split View for PTW) -->
-            <div id="view-grid" class="view-panel flex-1 flex overflow-hidden hidden">
-                <!-- Left Pane: Data Grid -->
-                <div class="flex-1 flex flex-col overflow-hidden relative">
-                    <!-- Filters Bar -->
-                    <div class="bg-zinc-900/50 p-3 border-b border-zinc-800 flex items-center gap-2 overflow-x-auto shrink-0 hide-scrollbar" id="filterBar">
-                        <button onclick="setFilter('All')" data-filter="All" class="filter-btn px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs font-medium rounded-md border border-zinc-700 transition-colors whitespace-nowrap active:bg-zinc-700">All Statuses</button>
-                        <button onclick="setFilter('Pending Review')" data-filter="Pending Review" class="filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap">Pending Review</button>
-                        <button onclick="setFilter('Approved (Open)')" data-filter="Approved (Open)" class="filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap">Approved (Open)</button>
-                        <button onclick="setFilter('Closed')" data-filter="Closed" class="filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap">Closed</button>
-                        <button onclick="setFilter('Cancelled')" data-filter="Cancelled" class="filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap">Cancelled</button>
-                        <button onclick="setFilter('Rejected')" data-filter="Rejected" class="filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap">Rejected</button>
-                    </div>
-
-                    <!-- Table -->
-                    <div class="flex-1 overflow-auto bg-zinc-950">
-                        <table class="w-full text-left border-collapse min-w-[1000px]">
-                            <thead class="bg-zinc-900/80 sticky top-0 z-10 backdrop-blur-sm shadow-sm">
-                                <tr>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800 font-mono cursor-pointer hover:text-zinc-200 transition-colors group select-none" onclick="handleSort('ptwNo')">
-                                        <div class="flex items-center gap-1">PTW No. <i data-lucide="arrow-down" class="w-3 h-3 text-blue-500" id="sort-icon-ptwNo"></i></div>
-                                    </th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800 cursor-pointer hover:text-zinc-200 transition-colors group select-none" onclick="handleSort('date')">
-                                        <div class="flex items-center gap-1">Date <i data-lucide="arrow-down-up" class="w-3 h-3 opacity-0 group-hover:opacity-50 text-zinc-500 transition-opacity" id="sort-icon-date"></i></div>
-                                    </th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800 cursor-pointer hover:text-zinc-200 transition-colors group select-none" onclick="handleSort('requester')">
-                                        <div class="flex items-center gap-1">Requester <i data-lucide="arrow-down-up" class="w-3 h-3 opacity-0 group-hover:opacity-50 text-zinc-500 transition-opacity" id="sort-icon-requester"></i></div>
-                                    </th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800 w-1/4 cursor-pointer hover:text-zinc-200 transition-colors group select-none" onclick="handleSort('scope')">
-                                        <div class="flex items-center gap-1">Scope of Work <i data-lucide="arrow-down-up" class="w-3 h-3 opacity-0 group-hover:opacity-50 text-zinc-500 transition-opacity" id="sort-icon-scope"></i></div>
-                                    </th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800 cursor-pointer hover:text-zinc-200 transition-colors group select-none" onclick="handleSort('location')">
-                                        <div class="flex items-center gap-1">Location <i data-lucide="arrow-down-up" class="w-3 h-3 opacity-0 group-hover:opacity-50 text-zinc-500 transition-opacity" id="sort-icon-location"></i></div>
-                                    </th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800 text-center cursor-pointer hover:text-zinc-200 transition-colors group select-none" onclick="handleSort('critical')">
-                                        <div class="flex items-center justify-center gap-1">Critical <i data-lucide="arrow-down-up" class="w-3 h-3 opacity-0 group-hover:opacity-50 text-zinc-500 transition-opacity" id="sort-icon-critical"></i></div>
-                                    </th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800 cursor-pointer hover:text-zinc-200 transition-colors group select-none" onclick="handleSort('ptwStatus')">
-                                        <div class="flex items-center gap-1">Status <i data-lucide="arrow-down-up" class="w-3 h-3 opacity-0 group-hover:opacity-50 text-zinc-500 transition-opacity" id="sort-icon-ptwStatus"></i></div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody id="ptwTableBody" class="divide-y divide-zinc-800/50">
-                                <!-- Rows injected via JS -->
-                            </tbody>
-                        </table>
-                    </div>
+            <!-- View: Live Execution -->
+            <div id="view-live" class="view-section p-4 space-y-4 hidden">
+                <div class="relative mb-4">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+                    <input type="text" id="searchLive" placeholder="Search active PTWs..." oninput="renderLivePermits()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-blue-500">
                 </div>
-
-                <!-- Right Pane: Details Review -->
-                <div id="detailsPane" class="w-0 lg:w-[450px] xl:w-[500px] border-l border-zinc-800 bg-zinc-900 flex flex-col shrink-0 panel-transition overflow-hidden hidden lg:flex">
-                    <div id="emptyState" class="flex-1 flex flex-col items-center justify-center p-8 text-center h-full">
-                        <div class="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4 border border-zinc-700 text-zinc-600">
-                            <i data-lucide="mouse-pointer-click" class="w-8 h-8"></i>
-                        </div>
-                        <h3 class="text-zinc-200 font-medium text-lg">No Permit Selected</h3>
-                        <p class="text-zinc-500 text-sm mt-2 max-w-xs">Select a row from the master data grid to view permit details and execute approvals.</p>
-                    </div>
-                    <div id="filledState" class="flex-1 flex flex-col h-full hidden">
-                        <div class="px-6 py-4 border-b border-zinc-800 flex justify-between items-start bg-zinc-900 shrink-0">
-                            <div>
-                                <div class="flex items-center gap-3 mb-1">
-                                    <h2 id="detailPtwNo" class="text-xl font-bold text-zinc-100 font-mono tracking-tight"></h2>
-                                    <span id="detailStatusBadge" class="px-2 py-0.5 rounded text-xs font-medium border"></span>
-                                </div>
-                                <p class="text-xs text-zinc-400 flex items-center gap-1">
-                                    <i data-lucide="calendar" class="w-3 h-3"></i> <span id="detailDate"></span> • <span id="detailTime"></span>
-                                </p>
-                            </div>
-                            <button onclick="closeDetails()" class="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-md transition-colors lg:hidden">
-                                <i data-lucide="x" class="w-5 h-5"></i>
-                            </button>
-                        </div>
-                        <div class="flex-1 overflow-y-auto p-6 space-y-8 bg-zinc-900/50">
-                            <!-- PTW Details Content -->
-                            <section>
-                                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <i data-lucide="info" class="w-4 h-4"></i> General Information
-                                </h3>
-                                <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-4 grid grid-cols-2 gap-y-4 gap-x-6">
-                                    <div><label class="text-xs text-zinc-500 block mb-1">Requester</label><div class="text-sm text-zinc-200 font-medium" id="detailRequester"></div></div>
-                                    <div><label class="text-xs text-zinc-500 block mb-1">Work Owner</label><div class="text-sm text-zinc-200 font-medium" id="detailWorkOwner"></div></div>
-                                    <div class="col-span-2"><label class="text-xs text-zinc-500 block mb-1">Work Location</label><div class="text-sm text-zinc-200 font-medium flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-zinc-400"></i><span id="detailLocation"></span></div></div>
-                                    <div class="col-span-2"><label class="text-xs text-zinc-500 block mb-1">Scope of Work</label><div class="text-sm text-zinc-300 leading-relaxed bg-zinc-900 p-3 rounded-lg border border-zinc-800/50" id="detailScope"></div></div>
-                                </div>
-                            </section>
-                            <section>
-                                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <i data-lucide="shield-alert" class="w-4 h-4"></i> Safety & Precautions
-                                </h3>
-                                <div class="flex flex-wrap gap-2">
-                                    <div id="tagCritical" class="px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-300 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 text-orange-500"></i> Critical Work</div>
-                                    <div id="tagLoto" class="px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-300 flex items-center gap-2"><i data-lucide="lock" class="w-4 h-4 text-blue-500"></i> LOTO Required: <strong id="valLoto" class="text-zinc-100"></strong></div>
-                                    <div id="tagBypass" class="px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-300 flex items-center gap-2"><i data-lucide="toggle-right" class="w-4 h-4 text-purple-500"></i> Bypass Form: <strong id="valBypass" class="text-zinc-100"></strong></div>
-                                </div>
-                            </section>
-                            <section>
-                                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <i data-lucide="git-merge" class="w-4 h-4"></i> Workflow Status
-                                </h3>
-                                <div id="workflowTimeline" class="relative pl-4 border-l border-zinc-800 space-y-6 pb-2">
-                                    <!-- Dynamic workflow steps injected here -->
-                                </div>
-                            </section>
-                        </div>
-                        <div id="actionFooter" class="p-4 border-t border-zinc-800 bg-zinc-950 flex gap-3 shrink-0"></div>
-                    </div>
+                <div id="livePermitList" class="space-y-3">
+                    <!-- Cards injected via JS -->
                 </div>
             </div>
 
-            <!-- VIEW: USERS & ROLES -->
-            <div id="view-users-roles" class="view-panel flex-1 flex overflow-hidden hidden">
-                <!-- Left Pane: Users Grid -->
-                <div class="flex-1 flex flex-col overflow-hidden relative">
-                    <div class="bg-zinc-900/50 p-3 border-b border-zinc-800 flex items-center justify-between shrink-0 overflow-x-auto hide-scrollbar">
-                        <div class="flex items-center gap-2">
-                            <button onclick="setUserFilter('All')" data-ufilter="All" class="user-filter-btn px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs font-medium rounded-md border border-zinc-700 transition-colors whitespace-nowrap active:bg-zinc-700">All Users</button>
-                            <button onclick="setUserFilter('Admins')" data-ufilter="Admins" class="user-filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap">Admins</button>
-                            <button onclick="setUserFilter('Approvers')" data-ufilter="Approvers" class="user-filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap">Approvers</button>
-                            <button onclick="setUserFilter('Inactive')" data-ufilter="Inactive" class="user-filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap">Inactive</button>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="openManageRolesModal()" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-md border border-zinc-700 transition-colors flex items-center gap-1 shadow-sm whitespace-nowrap">
-                                <i data-lucide="shield" class="w-3.5 h-3.5"></i> Manage Roles
-                            </button>
-                            <button onclick="openAddUserModal()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-md transition-colors flex items-center gap-1 shadow-lg shadow-blue-500/20 whitespace-nowrap">
-                                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Add User
-                            </button>
-                        </div>
+            <!-- View: My Approvals -->
+            <div id="view-approvals" class="view-section p-4 space-y-4 hidden">
+                <div class="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-orange-500 font-semibold text-sm">Action Required</h3>
+                        <p class="text-xs text-orange-400/80">Permits awaiting your review.</p>
                     </div>
-                    <!-- Table -->
-                    <div class="flex-1 overflow-auto bg-zinc-950">
-                        <table class="w-full text-left border-collapse min-w-[600px]">
-                            <thead class="bg-zinc-900/80 sticky top-0 z-10 backdrop-blur-sm shadow-sm">
-                                <tr>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">Username</th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">Full Name</th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">Primary Role</th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800">Stackable Rights</th>
-                                    <th class="p-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800 text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="usersTableBody" class="divide-y divide-zinc-800/50">
-                                <!-- Injected via JS -->
-                            </tbody>
-                        </table>
-                    </div>
+                    <div class="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm" id="approvalsBadgeLg">0</div>
                 </div>
-
-                <!-- Right Pane: User Details & Permissions -->
-                <div id="userDetailsPane" class="w-0 lg:w-[400px] border-l border-zinc-800 bg-zinc-900 flex flex-col shrink-0 panel-transition overflow-hidden hidden lg:flex">
-                    <div id="userEmptyState" class="flex-1 flex flex-col items-center justify-center p-8 text-center h-full">
-                        <div class="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4 border border-zinc-700 text-zinc-600">
-                            <i data-lucide="user-cog" class="w-8 h-8"></i>
-                        </div>
-                        <h3 class="text-zinc-200 font-medium text-lg">No User Selected</h3>
-                        <p class="text-zinc-500 text-sm mt-2 max-w-xs">Select a user from the grid to modify their roles, locations, and delegation rights.</p>
-                    </div>
-
-                    <div id="userFilledState" class="flex-1 flex flex-col h-full hidden">
-                        <div class="px-6 py-4 border-b border-zinc-800 flex justify-between items-start bg-zinc-900 shrink-0">
-                            <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <h2 id="detailUsername" class="text-xl font-bold text-zinc-100 tracking-tight"></h2>
-                                </div>
-                                <p class="text-xs text-zinc-400 flex items-center gap-1">User Configuration & Authority</p>
-                            </div>
-                            <button onclick="closeUserDetails()" class="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-md transition-colors lg:hidden">
-                                <i data-lucide="x" class="w-5 h-5"></i>
-                            </button>
-                        </div>
-
-                        <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-zinc-900/50 custom-scrollbar">
-                            <form id="editUserForm" onsubmit="updateUserDetails(event)" class="space-y-6">
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Full Name</label>
-                                        <input type="text" id="editUserFullName" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Primary Role</label>
-                                            <select id="editUserRole" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [color-scheme:dark]">
-                                                <!-- Injected via JS -->
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Account Status</label>
-                                            <select id="editUserStatus" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [color-scheme:dark]">
-                                                <option value="Active">Active</option>
-                                                <option value="Inactive">Inactive (Soft Delete)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Authorized Locations</label>
-                                        <input type="text" id="editUserLocations" placeholder="e.g. All, Cooling Tower B..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
-                                    </div>
-
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Out of Office</label>
-                                            <select id="editUserOoo" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [color-scheme:dark]">
-                                                <option value="false">No</option>
-                                                <option value="true">Yes (On Leave)</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Delegate Authority To</label>
-                                            <input type="text" id="editUserDelegate" placeholder="Username..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Security PIN (Digital Signature)</label>
-                                        <input type="password" id="editUserPin" maxlength="6" placeholder="4-6 Digits" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
-                                    </div>
-                                </div>
-
-                                <div class="border-t border-zinc-800 pt-6">
-                                    <label class="block text-xs font-semibold text-zinc-300 mb-3 flex items-center gap-2">
-                                        <i data-lucide="key" class="w-4 h-4 text-blue-500"></i> Stackable System Rights
-                                    </label>
-                                    <div class="grid grid-cols-2 gap-4 p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
-                                        <label class="flex items-center gap-3 cursor-pointer">
-                                            <input type="checkbox" id="editRightApprove" class="w-4 h-4 accent-blue-600 cursor-pointer">
-                                            <span class="text-sm text-zinc-200">Approve</span>
-                                        </label>
-                                        <label class="flex items-center gap-3 cursor-pointer">
-                                            <input type="checkbox" id="editRightOpen" class="w-4 h-4 accent-blue-600 cursor-pointer">
-                                            <span class="text-sm text-zinc-200">Open</span>
-                                        </label>
-                                        <label class="flex items-center gap-3 cursor-pointer">
-                                            <input type="checkbox" id="editRightCancel" class="w-4 h-4 accent-blue-600 cursor-pointer">
-                                            <span class="text-sm text-zinc-200">Cancel</span>
-                                        </label>
-                                        <label class="flex items-center gap-3 cursor-pointer">
-                                            <input type="checkbox" id="editRightReject" class="w-4 h-4 accent-blue-600 cursor-pointer">
-                                            <span class="text-sm text-zinc-200">Reject</span>
-                                        </label>
-                                        <label class="flex items-center gap-3 cursor-pointer">
-                                            <input type="checkbox" id="editRightClose" class="w-4 h-4 accent-blue-600 cursor-pointer">
-                                            <span class="text-sm text-zinc-200">Close</span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div class="pt-4 flex justify-between items-center">
-                                    <button type="button" onclick="deleteUser()" class="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg text-sm font-medium transition-colors">Delete User</button>
-                                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium shadow-lg shadow-blue-500/20 transition-colors">Save Configuration</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                <div id="approvalsPermitList" class="space-y-3">
+                    <!-- Cards injected via JS -->
                 </div>
             </div>
+
         </main>
+
+        <!-- Floating Action Button (Add PTW) -->
+        <button onclick="openAddPtwModal()" id="fabAddPtw" class="fab absolute bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white transition-transform active:scale-95 z-20">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+        </button>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="h-16 bg-zinc-900 border-t border-zinc-800 flex items-center justify-around px-2 z-20 shrink-0 pb-safe">
+            <button onclick="switchTab('home')" id="tab-home" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-blue-500 gap-1">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Home</span>
+            </button>
+            <button onclick="switchTab('live')" id="tab-live" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-zinc-500 hover:text-zinc-300 transition-colors gap-1">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Live</span>
+            </button>
+            <button onclick="switchTab('approvals')" id="tab-approvals" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-zinc-500 hover:text-zinc-300 transition-colors gap-1 relative hidden">
+                <i data-lucide="inbox" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Review</span>
+                <span id="navApprovalsBadge" class="absolute top-1 right-2 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-zinc-900 hidden">0</span>
+            </button>
+        </nav>
     </div>
 
-    <!-- Modal for Approval Actions -->
-    <div id="approvalModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity bg-black/60 backdrop-blur-sm">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform" id="modalContent">
-            <h3 class="text-lg font-bold text-zinc-100 mb-2">Confirm Action</h3>
-            <p class="text-sm text-zinc-400 mb-6">Are you sure you want to perform this action? This will be recorded in the audit trail.</p>
+    <!-- FULL SCREEN MODAL: PTW Details -->
+    <div id="ptwDetailsModal" class="fixed inset-0 bg-zinc-950 z-[60] flex flex-col modal-slide-up hidden">
+        <!-- Header -->
+        <div class="h-14 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 bg-zinc-900">
+            <button onclick="closePtwDetails()" class="p-2 -ml-2 text-zinc-400 active:text-zinc-100 transition-colors">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </button>
+            <h2 class="font-semibold text-zinc-100 text-sm font-mono" id="detailPtwNo">PTW Details</h2>
+            <div class="w-9"></div> <!-- spacer -->
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-6 hide-scrollbar pb-24">
             
-            <div class="mb-6">
-                <label class="block text-xs text-zinc-500 mb-2">Optional Comments</label>
-                <textarea class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none h-24" placeholder="Enter notes..."></textarea>
+            <!-- Status Header -->
+            <div class="flex items-center justify-between">
+                <span id="detailStatusBadge" class="px-2.5 py-1 rounded-md text-xs font-medium border">Status</span>
+                <span class="text-xs text-zinc-500 flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> <span id="detailDate"></span></span>
             </div>
 
-            <div class="flex justify-end gap-3">
-                <button onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors">Cancel</button>
-                <button onclick="confirmAction()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-lg shadow-blue-500/20">Confirm</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal for CSV Import -->
-    <div id="importModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity bg-black/60 backdrop-blur-sm">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-sm p-6 transform scale-95 transition-transform" id="importModalContent">
-            <h3 class="text-lg font-bold text-zinc-100 mb-2">Import CSV Database</h3>
-            <p class="text-sm text-zinc-400 mb-6">How would you like to import <span id="importFileName" class="text-zinc-200 font-medium"></span> into the system?</p>
-
-            <div class="flex flex-col gap-3">
-                <button onclick="confirmImport('merge')" class="w-full py-2.5 px-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20">
-                    <i data-lucide="git-merge" class="w-4 h-4"></i> Merge with existing records
-                </button>
-                <button onclick="confirmImport('replace')" class="w-full py-2.5 px-4 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
-                    <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Replace entire database
-                </button>
-                <button onclick="closeImportModal()" class="w-full py-2.5 px-4 mt-2 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal for Add PTW -->
-    <div id="addPtwModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity bg-black/60 backdrop-blur-sm">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform scale-95 transition-transform" id="addPtwModalContent">
-            <div class="px-6 py-4 border-b border-zinc-800 flex justify-between items-center shrink-0">
-                <h3 class="text-lg font-bold text-zinc-100">Create New PTW</h3>
-                <button onclick="closeAddPtwModal()" class="text-zinc-500 hover:text-zinc-300 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                <form id="addPtwForm" onsubmit="submitNewPtw(event)" class="space-y-5">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Date</label>
-                            <input type="date" id="newDate" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [color-scheme:dark]">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Start Time</label>
-                                <input type="time" id="newStartTime" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [color-scheme:dark]">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">End Time</label>
-                                <input type="time" id="newEndTime" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [color-scheme:dark]">
-                            </div>
-                        </div>
+            <!-- Main Info -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4">
+                <div>
+                    <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Scope of Work</label>
+                    <p class="text-sm text-zinc-200 mt-1 font-medium" id="detailScope"></p>
+                </div>
+                <div class="flex items-start gap-3">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-emerald-500 mt-0.5 shrink-0"></i>
+                    <div>
+                        <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Location</label>
+                        <p class="text-sm text-zinc-200 mt-0.5" id="detailLocation"></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-zinc-800/50">
+                    <div>
+                        <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Requester</label>
+                        <p class="text-sm text-zinc-300 mt-0.5 truncate" id="detailRequester"></p>
                     </div>
                     <div>
+                        <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Work Owner</label>
+                        <p class="text-sm text-zinc-300 mt-0.5 truncate" id="detailWorkOwner"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Safety Tags -->
+            <div>
+                <label class="text-xs font-semibold text-zinc-400 mb-2 block">Safety Requirements</label>
+                <div class="flex flex-wrap gap-2">
+                    <div id="tagCritical" class="px-2.5 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-500 flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Critical</div>
+                    <div id="tagLoto" class="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 flex items-center gap-1.5"><i data-lucide="lock" class="w-3 h-3 text-blue-500"></i> LOTO: <span id="valLoto"></span></div>
+                    <div id="tagBypass" class="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 flex items-center gap-1.5"><i data-lucide="toggle-right" class="w-3 h-3 text-purple-500"></i> Bypass: <span id="valBypass"></span></div>
+                </div>
+            </div>
+            
+            <!-- Approvers Info -->
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-sm space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-zinc-500">Reviewer:</span>
+                    <span class="text-zinc-300 font-medium text-right" id="detailReviewer"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-zinc-500">Approver:</span>
+                    <span class="text-zinc-300 font-medium text-right" id="detailApprover"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Bottom Action Footer -->
+        <div id="mobileActionFooter" class="absolute bottom-0 left-0 right-0 p-4 bg-zinc-950 border-t border-zinc-800 flex gap-3 pb-safe shrink-0">
+            <!-- Buttons injected dynamically -->
+        </div>
+    </div>
+
+    <!-- FULL SCREEN MODAL: Add PTW -->
+    <div id="addPtwModal" class="fixed inset-0 bg-zinc-950 z-[60] flex flex-col modal-slide-up hidden">
+        <div class="h-14 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 bg-zinc-900">
+            <button type="button" onclick="closeAddPtwModal()" class="p-2 -ml-2 text-zinc-400 active:text-zinc-100 transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h2 class="font-semibold text-zinc-100 text-sm">New Permit</h2>
+            <div class="w-9"></div> <!-- spacer -->
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-4 hide-scrollbar">
+            <form id="addPtwForm" onsubmit="submitNewPtw(event)" class="space-y-5 pb-8">
+                <!-- Date/Time -->
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Date</label>
+                        <input type="date" id="newDate" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark]">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Start Time</label>
+                            <input type="time" id="newStartTime" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark]">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">End Time</label>
+                            <input type="time" id="newEndTime" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark]">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scope/Location -->
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
+                    <div>
                         <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Scope of Work</label>
-                        <textarea id="newScope" required rows="2" placeholder="Describe the task..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none placeholder:text-zinc-700"></textarea>
+                        <textarea id="newScope" required rows="3" placeholder="Describe the task..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 resize-none placeholder:text-zinc-700"></textarea>
                     </div>
                     <div>
                         <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Work Location</label>
-                        <input type="text" id="newLocation" required placeholder="e.g. PKG G Office OSBL" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
-                        <div>
-                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Critical Work</label>
-                            <select id="newCritical" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark]">
-                                <option value="false">No</option>
-                                <option value="true">Yes</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">LOTO Required</label>
-                            <select id="newLoto" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark]">
-                                <option value="No">No</option>
-                                <option value="Yes">Yes</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Bypass Form</label>
-                            <select id="newBypass" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark]">
-                                <option value="No">No</option>
-                                <option value="Yes">Yes</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
-                        <div>
-                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Requester</label>
-                            <input type="text" id="newRequester" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Work Owner</label>
-                            <input type="text" id="newWorkOwner" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="px-6 py-4 border-t border-zinc-800 bg-zinc-900 flex justify-end gap-3 shrink-0 rounded-b-xl">
-                <button type="button" onclick="closeAddPtwModal()" class="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors">Cancel</button>
-                <button type="submit" form="addPtwForm" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-lg shadow-blue-500/20">Submit Registration</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal for Add User -->
-    <div id="addUserModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity bg-black/60 backdrop-blur-sm">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-md p-6 transform scale-95 transition-transform" id="addUserModalContent">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-zinc-100">Register New User</h3>
-                <button onclick="closeAddUserModal()" class="text-zinc-500 hover:text-zinc-300 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <form id="addUserForm" onsubmit="submitNewUser(event)" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Username</label>
-                        <input type="text" id="newUserUsername" required placeholder="e.g. j.doe" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Full Name</label>
-                        <input type="text" id="newUserFullName" required placeholder="e.g. John Doe" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
+                        <input type="text" id="newLocation" required placeholder="e.g. Substation 1" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Primary Role</label>
-                        <select id="newUserRole" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [color-scheme:dark]">
-                            <!-- Injected via JS -->
+
+                <!-- Safety Settings -->
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm text-zinc-300">Critical Work</label>
+                        <select id="newCritical" class="bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200 focus:outline-none [color-scheme:dark]">
+                            <option value="false">No</option>
+                            <option value="true">Yes</option>
                         </select>
                     </div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm text-zinc-300">LOTO Required</label>
+                        <select id="newLoto" class="bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200 focus:outline-none [color-scheme:dark]">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm text-zinc-300">Bypass Form</label>
+                        <select id="newBypass" class="bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200 focus:outline-none [color-scheme:dark]">
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Personnel -->
+                <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
                     <div>
-                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Security PIN</label>
-                        <input type="password" id="newUserPin" maxlength="6" placeholder="4-6 Digits" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Requester</label>
+                        <input type="text" id="newRequester" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Work Owner</label>
+                        <input type="text" id="newWorkOwner" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Authorized Locations</label>
-                    <input type="text" id="newUserLocations" placeholder="e.g. All, Substation 1" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
-                </div>
-                <div class="border-t border-zinc-800 pt-4 mt-2">
-                    <label class="block text-xs font-semibold text-zinc-300 mb-3 flex items-center gap-2">
-                        <i data-lucide="key" class="w-4 h-4 text-blue-500"></i> Initial Stackable Rights
-                    </label>
-                    <div class="grid grid-cols-2 gap-3 p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-zinc-200"><input type="checkbox" id="addRightApprove" class="w-4 h-4 accent-blue-600"> Approve</label>
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-zinc-200"><input type="checkbox" id="addRightOpen" class="w-4 h-4 accent-blue-600"> Open</label>
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-zinc-200"><input type="checkbox" id="addRightCancel" class="w-4 h-4 accent-blue-600"> Cancel</label>
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-zinc-200"><input type="checkbox" id="addRightReject" class="w-4 h-4 accent-blue-600"> Reject</label>
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-zinc-200"><input type="checkbox" id="addRightClose" class="w-4 h-4 accent-blue-600"> Close</label>
-                    </div>
-                </div>
-                <div class="pt-4 flex justify-end gap-3">
-                    <button type="button" onclick="closeAddUserModal()" class="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-lg shadow-blue-500/20">Create User</button>
-                </div>
+
+                <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-transform">
+                    Submit Registration
+                </button>
             </form>
         </div>
     </div>
 
-    <!-- Modal for Manage Roles -->
-    <div id="manageRolesModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity bg-black/60 backdrop-blur-sm">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-md p-6 flex flex-col transform scale-95 transition-transform" id="manageRolesModalContent">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-zinc-100 flex items-center gap-2"><i data-lucide="shield" class="w-5 h-5 text-blue-500"></i> Role Definitions</h3>
-                <button onclick="closeManageRolesModal()" class="text-zinc-500 hover:text-zinc-300 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
+    <!-- Confirmation Modal (Action Dialog) -->
+    <div id="actionConfirmModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center hidden opacity-0 transition-opacity px-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 transform scale-95 transition-transform" id="actionConfirmContent">
+            <h3 class="text-lg font-bold text-zinc-100 mb-2">Confirm Action</h3>
+            <p class="text-sm text-zinc-400 mb-5">Please confirm to proceed with this update.</p>
             
-            <form onsubmit="submitNewRole(event)" class="flex gap-2 mb-6">
-                <input type="text" id="newRoleName" required placeholder="Define new role..." class="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-700">
-                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors shadow-md shadow-blue-500/20">Add</button>
-            </form>
-
-            <div class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Existing Roles</div>
-            <div class="flex-1 overflow-y-auto max-h-64 custom-scrollbar pr-2 space-y-2" id="rolesListContainer">
-                <!-- Roles injected via JS -->
+            <div class="flex gap-3 mt-4">
+                <button onclick="closeActionModal()" class="flex-1 py-3 text-sm font-medium text-zinc-300 bg-zinc-800 rounded-xl active:bg-zinc-700 transition-colors">Cancel</button>
+                <button onclick="executeConfirmedAction()" class="flex-1 py-3 text-sm font-medium text-white bg-blue-600 rounded-xl active:bg-blue-500 shadow-lg shadow-blue-500/20 transition-colors">Confirm</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase Configuration & Application Logic -->
+    <!-- Notification Modal -->
+    <div id="notificationModal" class="fixed inset-0 z-[80] flex items-center justify-center hidden opacity-0 transition-opacity bg-black/70 backdrop-blur-sm px-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 transform scale-95 transition-transform" id="notificationModalContent">
+            <div class="flex items-center gap-3 mb-4 text-orange-500">
+                <i data-lucide="alert-circle" class="w-6 h-6"></i>
+                <h3 class="text-lg font-bold text-zinc-100" id="notificationTitle">Notification</h3>
+            </div>
+            <p class="text-sm text-zinc-400 mb-6 leading-relaxed" id="notificationMessage">Message goes here.</p>
+            <button onclick="closeNotification()" class="w-full py-3.5 text-sm font-medium text-white bg-blue-600 rounded-xl active:bg-blue-500 shadow-lg shadow-blue-500/20 transition-colors">Understood</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
     <script type="importmap">
         {
             "imports": {
@@ -704,9 +375,9 @@
     <script type="module">
         import { initializeApp } from "firebase/app";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "firebase/auth";
-        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from "firebase/firestore";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc } from "firebase/firestore";
 
-        // User's explicitly provided Firebase configuration
+        // Using exactly the same configuration as the Desktop app
         const firebaseConfig = {
           apiKey: "AIzaSyB4ma94d-P4FOSVxWiu8hMTYUzcwuLsDgc",
           authDomain: "fmd-ptw-management.firebaseapp.com",
@@ -721,33 +392,19 @@
         const db = getFirestore(app);
         const appId = 'fmd-ptw-app';
 
-        // Application State
+        // State
         let ptwData = [];
-        let auditData = [];
         let userData = [];
-        let roleData = [];
         let loggedInUser = null;
-        
-        let selectedRowId = null;
-        let selectedUserId = null;
-        let currentFilter = 'All';
-        let currentUserFilter = 'All';
-        let sortColumn = 'ptwNo';
-        let sortDirection = 'desc';
-        let statusChartInstance = null;
-        let pendingImportFile = null;
         let isOfflineMode = false;
-        
+        let currentTab = 'home';
+        let selectedPtwId = null;
+        let pendingAction = '';
+
         let unsubscribePtws = null;
-        let unsubscribeLogs = null;
         let unsubscribeUsers = null;
-        let unsubscribeRoles = null;
 
-        let currentApprovalAction = ''; 
-        let currentActivityPage = 1;
-        const ACTIVITIES_PER_PAGE = 5;
-
-        // --- FIREBASE AUTH & REALTIME SYNC ---
+        // --- INIT & AUTH ---
 
         async function initializeAppLogic() {
             try {
@@ -757,23 +414,18 @@
                         await signInWithCustomToken(auth, __initial_auth_token);
                         authSuccessful = true;
                     } catch (tokenError) {
-                        console.warn("Custom token sign-in failed. Falling back to anonymous auth...");
+                        console.warn("Custom token sign-in failed. Falling back to anonymous...");
                     }
                 }
-                
-                if (!authSuccessful) {
-                    await signInAnonymously(auth);
-                }
+                if (!authSuccessful) await signInAnonymously(auth);
                 
                 isOfflineMode = false;
                 setupRealtimeListener();
-
             } catch (error) {
-                console.error("Firebase Authentication Error:", error);
+                console.error("Firebase Auth Error:", error);
                 isOfflineMode = true;
                 
-                // Offline Fallback Dummy Data for Users/Roles
-                roleData = [{id: 'r1', name: 'Admin'}, {id: 'r2', name: 'Approver'}, {id: 'r3', name: 'Requester'}];
+                // Offline Fallback Data
                 userData = [{id: 'u1', username: 'admin', fullName: 'System Administrator', role: 'Admin', status: 'Active', pin: '123456', rights: {approve: true, open: true, cancel: true, reject: true, close: true}}];
                 ptwData = [];
                 
@@ -787,32 +439,7 @@
                 ptwData = [];
                 snapshot.forEach(doc => { ptwData.push({ id: doc.id, ...doc.data() }); });
                 ptwData.sort((a, b) => b.ptwNo.localeCompare(a.ptwNo));
-                if (loggedInUser) refreshActiveView();
-            }, (error) => { console.error("Firestore PTW Listener Error:", error); });
-
-            const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'audit_logs');
-            unsubscribeLogs = onSnapshot(logsRef, (snapshot) => {
-                auditData = [];
-                snapshot.forEach(doc => { auditData.push({ id: doc.id, ...doc.data() }); });
-                auditData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                if (loggedInUser && !document.getElementById('view-dashboard').classList.contains('hidden')) {
-                    if (typeof renderAuditLog === 'function') renderAuditLog();
-                }
-            }, (error) => { console.error("Firestore Audit Log Listener Error:", error); });
-
-            // Users & Roles Listeners
-            const rolesRef = collection(db, 'artifacts', appId, 'public', 'data', 'roles');
-            unsubscribeRoles = onSnapshot(rolesRef, async (snapshot) => {
-                roleData = [];
-                snapshot.forEach(doc => { roleData.push({ id: doc.id, ...doc.data() }); });
-                
-                if (roleData.length === 0 && !isOfflineMode) {
-                    const defaultRoles = ['Admin', 'Requester', 'Reviewer', 'Approver'];
-                    for (const r of defaultRoles) await addDoc(rolesRef, { name: r });
-                } else {
-                    populateRoleDropdowns();
-                    if (loggedInUser && !document.getElementById('view-users-roles').classList.contains('hidden')) renderRolesList();
-                }
+                if (loggedInUser) updateUI();
             });
 
             const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
@@ -821,7 +448,6 @@
                 snapshot.forEach(doc => { userData.push({ id: doc.id, ...doc.data() }); });
                 
                 if (userData.length === 0 && !isOfflineMode) {
-                    // Seed the initial master admin account
                     await addDoc(usersRef, { username: 'admin', fullName: 'System Administrator', role: 'Admin', status: 'Active', pin: '123456', rights: { approve: true, open: true, cancel: true, reject: true, close: true }});
                 } else {
                     enableLoginScreen();
@@ -829,31 +455,18 @@
                         const updatedSelf = userData.find(u => u.username === loggedInUser.username);
                         if (updatedSelf) {
                             loggedInUser = updatedSelf;
-                            applyRBACUI();
-                            
-                            const activeView = document.querySelector('.nav-link.bg-blue-500\\/10')?.dataset.target || 'dashboard';
-                            // Kick to dashboard if on my-approvals but rights were revoked
-                            if (activeView === 'my-approvals' && (!loggedInUser.rights || !loggedInUser.rights.approve)) {
-                                switchView('dashboard');
-                            } else if (activeView === 'all-permits' && loggedInUser.role === 'Requester') {
-                                switchView('dashboard');
-                            } else {
-                                switchView(activeView);
-                            }
+                            applyRBAC();
                         }
-                        refreshActiveView();
+                        updateUI();
                     }
                 }
             });
         }
 
-        // --- AUTHENTICATION LOGIC ---
-
         function enableLoginScreen() {
             const loginBtn = document.getElementById('loginBtn');
             loginBtn.disabled = false;
             loginBtn.innerText = 'Secure Login';
-            loginBtn.classList.remove('disabled:bg-zinc-800');
         }
 
         function handleLogin(event) {
@@ -863,43 +476,25 @@
 
             const user = userData.find(u => u.username.toLowerCase() === usernameInput.toLowerCase());
 
-            if (!user) {
-                alert("Authentication Failed: User not found.");
-                return;
-            }
-            if (user.status === 'Inactive') {
-                alert("Authentication Failed: This account has been deactivated.");
+            if (!user || user.status === 'Inactive') {
+                alert("Authentication Failed.");
                 return;
             }
 
-            // PIN Validation Logic (including master PIN fallback for admin)
-            let isPinValid = false;
-            if (user.pin === pinInput) {
-                isPinValid = true;
-            } else if (user.username.toLowerCase() === 'admin' && pinInput === '5930-000003') {
-                isPinValid = true; // Master PIN Fallback
-            }
+            let isPinValid = (user.pin === pinInput) || (user.username.toLowerCase() === 'admin' && pinInput === '5930-000003');
 
             if (isPinValid) {
-                // Success
                 loggedInUser = user;
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('mainApp').classList.remove('hidden');
-
-                // Update Profile UI
-                document.getElementById('currentUserFullName').innerText = user.fullName;
-                document.getElementById('currentUserRole').innerText = user.role;
-                document.getElementById('currentUserInitials').innerText = user.fullName.substring(0, 2).toUpperCase();
-
-                // Apply UI Restrictions based on Roles & Rights
-                applyRBACUI();
-
-                // Default entry view
-                switchView('dashboard');
-                refreshActiveView(); // Force UI and badges to update immediately upon login
+                
+                document.getElementById('greetingName').innerText = user.fullName;
+                
+                applyRBAC();
+                switchTab('home');
                 lucide.createIcons();
             } else {
-                alert("Authentication Failed: Invalid Security PIN.");
+                alert("Authentication Failed: Invalid PIN.");
             }
         }
         window.handleLogin = handleLogin;
@@ -912,466 +507,68 @@
         }
         window.handleLogout = handleLogout;
 
-        function applyRBACUI() {
-            if (!loggedInUser) return;
+        // --- NAVIGATION & RBAC ---
 
-            // Admin Menu Sidebar Link
-            const adminMenu = document.getElementById('adminSidebarSection');
-            if (loggedInUser.role === 'Admin') {
-                adminMenu.classList.remove('hidden');
+        function applyRBAC() {
+            const approvalsTab = document.getElementById('tab-approvals');
+            if (loggedInUser?.rights?.approve) {
+                approvalsTab.classList.remove('hidden');
             } else {
-                adminMenu.classList.add('hidden');
-            }
-
-            // My Approvals Sidebar Link
-            const myApprovalsNav = document.querySelector('[data-target="my-approvals"]');
-            if (loggedInUser.rights && loggedInUser.rights.approve) {
-                myApprovalsNav.classList.remove('hidden');
-            } else {
-                myApprovalsNav.classList.add('hidden');
-            }
-
-            // All Permits Sidebar Link
-            const allPermitsNav = document.querySelector('[data-target="all-permits"]');
-            if (loggedInUser.role === 'Requester') {
-                allPermitsNav.classList.add('hidden');
-            } else {
-                allPermitsNav.classList.remove('hidden');
+                approvalsTab.classList.add('hidden');
+                if (currentTab === 'approvals') switchTab('home');
             }
         }
 
-
-        // --- AUDIT LOGGING FUNCTION ---
-        async function logActivity(ptwNo, action, user, type) {
-            const logEntry = {
-                ptwNo,
-                action,
-                user: user || 'System',
-                timestamp: new Date().toISOString(),
-                type
-            };
-
-            if (isOfflineMode) {
-                auditData.unshift(logEntry);
-                if (typeof renderAuditLog === 'function') renderAuditLog();
-                return;
-            }
-
-            try {
-                const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'audit_logs');
-                await addDoc(logsRef, logEntry);
-            } catch (error) {
-                console.error("Failed to save audit log: ", error);
-            }
-        }
-        window.logActivity = logActivity;
-
-        // --- CORE UI RENDERING ---
-
-        function refreshActiveView() {
-            if (!loggedInUser) return;
-
-            const isDashboard = !document.getElementById('view-dashboard').classList.contains('hidden');
-            const isUsers = !document.getElementById('view-users-roles').classList.contains('hidden');
-
-            if (isDashboard) {
-                renderDashboardChart();
-                if (typeof renderAuditLog === 'function') renderAuditLog();
-            } else if (isUsers) {
-                applyFilters();
-                if (selectedUserId) {
-                    const updatedUser = userData.find(u => u.id === selectedUserId);
-                    if (updatedUser) populateUserDetailsPane(updatedUser);
-                    else closeUserDetails();
-                }
-            } else {
-                applyFilters();
-                if (selectedRowId) {
-                    const updatedPtw = ptwData.find(p => p.ptwNo === selectedRowId);
-                    if (updatedPtw) populateDetailsPane(updatedPtw);
-                    else closeDetails(); 
-                }
-            }
+        function switchTab(tabId) {
+            currentTab = tabId;
             
-            // Update global navigation badge
+            // Update Tab Icons UI
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.replace('text-blue-500', 'text-zinc-500');
+            });
+            document.getElementById(`tab-${tabId}`).classList.replace('text-zinc-500', 'text-blue-500');
+
+            // Update Views
+            document.querySelectorAll('.view-section').forEach(view => view.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            const titleMap = { 'home': 'Home', 'live': 'Live Execution', 'approvals': 'My Approvals' };
+            document.getElementById('headerTitle').innerText = titleMap[tabId];
+            
+            // Fab visibility
+            document.getElementById('fabAddPtw').style.display = tabId === 'home' ? 'flex' : 'none';
+
+            updateUI();
+        }
+        window.switchTab = switchTab;
+
+        // --- RENDER LOGIC (MOBILE OPTIMIZED CARDS) ---
+
+        function updateUI() {
+            if (!loggedInUser) return;
+            
+            if (currentTab === 'home') renderHome();
+            else if (currentTab === 'live') renderLivePermits();
+            else if (currentTab === 'approvals') renderApprovals();
+            
+            updateBadges();
+        }
+
+        function updateBadges() {
             const pendingCount = ptwData.filter(d => d.ptwStatus === 'Pending Review').length;
-            const badge = document.getElementById('navPendingBadge');
-            if (badge) {
-                badge.innerText = pendingCount;
-                badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
-            }
-        }
-
-        function switchView(targetView) {
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('bg-blue-500/10', 'text-blue-400');
-                link.classList.add('text-zinc-400', 'hover:text-zinc-100', 'hover:bg-zinc-800');
-                if (link.dataset.target === targetView) {
-                    link.classList.add('bg-blue-500/10', 'text-blue-400');
-                    link.classList.remove('text-zinc-400', 'hover:text-zinc-100', 'hover:bg-zinc-800');
-                }
-            });
-
-            document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
+            const badgeNav = document.getElementById('navApprovalsBadge');
+            const badgeLg = document.getElementById('approvalsBadgeLg');
             
-            const pageTitle = document.getElementById('pageTitle');
-            const searchContainer = document.getElementById('searchContainer');
-            const searchInput = document.getElementById('searchInput');
-            
-            const addPtwBtn = document.getElementById('addPtwBtn');
-            const importBtn = document.getElementById('importBtn');
-            const exportBtn = document.getElementById('exportBtn');
-
-            if (targetView === 'dashboard') {
-                document.getElementById('view-dashboard').classList.remove('hidden');
-                pageTitle.innerText = 'Dashboard Overview';
-                searchContainer.classList.add('invisible'); 
-                
-                addPtwBtn.classList.remove('hidden');
-                if (loggedInUser && loggedInUser.role === 'Admin') {
-                    importBtn.classList.remove('hidden');
-                    exportBtn.classList.remove('hidden');
-                } else {
-                    importBtn.classList.add('hidden');
-                    exportBtn.classList.add('hidden');
-                }
-
-                renderDashboardChart();
-                if (typeof renderAuditLog === 'function') renderAuditLog();
-            } else if (targetView === 'users-roles') {
-                document.getElementById('view-users-roles').classList.remove('hidden');
-                pageTitle.innerText = 'Users & Roles Management';
-                searchContainer.classList.remove('invisible');
-                searchInput.placeholder = "Search Users...";
-                
-                addPtwBtn.classList.add('hidden');
-                importBtn.classList.add('hidden');
-                exportBtn.classList.add('hidden');
-
-                applyFilters();
-            } else {
-                document.getElementById('view-grid').classList.remove('hidden');
-                pageTitle.innerText = targetView === 'my-approvals' ? 'My Approvals' : (targetView === 'live-execution' ? 'Live Execution' : 'Master Data Grid');
-                searchContainer.classList.remove('invisible');
-                searchInput.placeholder = "Search PTW No, Location...";
-                
-                addPtwBtn.classList.remove('hidden');
-                if (loggedInUser && loggedInUser.role === 'Admin') {
-                    importBtn.classList.remove('hidden');
-                    exportBtn.classList.remove('hidden');
-                } else {
-                    importBtn.classList.add('hidden');
-                    exportBtn.classList.add('hidden');
-                }
-                
-                // Toggle specific filter buttons based on active view
-                document.querySelectorAll('#filterBar .filter-btn').forEach(btn => {
-                    const f = btn.dataset.filter;
-                    if (targetView === 'my-approvals') {
-                        btn.style.display = (f === 'All' || f === 'Pending Review') ? 'inline-block' : 'none';
-                    } else if (targetView === 'live-execution') {
-                        btn.style.display = (f === 'All' || f === 'Pending Review' || f === 'Approved (Open)') ? 'inline-block' : 'none';
-                    } else {
-                        btn.style.display = 'inline-block';
-                    }
-                });
-                
-                setFilter('All');
+            if (badgeNav) {
+                badgeNav.innerText = pendingCount;
+                badgeNav.style.display = pendingCount > 0 ? 'flex' : 'none';
             }
+            if (badgeLg) badgeLg.innerText = pendingCount;
         }
-        window.switchView = switchView;
-
-        // --- DASHBOARD CHARTS ---
-
-        function renderDashboardChart() {
-            const counts = { 'Pending Review': 0, 'Approved (Open)': 0, 'Closed': 0, 'Cancelled': 0, 'Rejected': 0 };
-            ptwData.forEach(d => { if(counts[d.ptwStatus] !== undefined) counts[d.ptwStatus]++; });
-
-            document.getElementById('statTotal').innerText = ptwData.length;
-            document.getElementById('statPending').innerText = counts['Pending Review'];
-            document.getElementById('statActive').innerText = counts['Approved (Open)'];
-
-            renderActiveLocationsTable();
-
-            const ctx = document.getElementById('statusChart').getContext('2d');
-            if (statusChartInstance) statusChartInstance.destroy();
-
-            const colors = { 'Pending Review': '#f97316', 'Approved (Open)': '#10b981', 'Closed': '#3b82f6', 'Cancelled': '#71717a', 'Rejected': '#ef4444' };
-
-            statusChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(counts),
-                    datasets: [{ 
-                        data: Object.values(counts), 
-                        backgroundColor: Object.values(colors), 
-                        borderWidth: 0,
-                        borderRadius: 6,
-                        barPercentage: 0.6
-                    }]
-                },
-                options: {
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    layout: { padding: { top: 25 } },
-                    plugins: {
-                        legend: { display: false }, 
-                        tooltip: { backgroundColor: '#18181b', titleColor: '#f4f4f5', bodyColor: '#a1a1aa', borderColor: '#27272a', borderWidth: 1, padding: 12, displayColors: false }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: '#27272a' }, ticks: { color: '#a1a1aa', stepSize: 1, font: { family: 'Inter', size: 11 } } },
-                        x: { grid: { display: false }, ticks: { color: '#a1a1aa', font: { family: 'Inter', size: 11 } } }
-                    }
-                },
-                plugins: [{
-                    id: 'topLabels',
-                    afterDatasetsDraw(chart) {
-                        const { ctx } = chart;
-                        chart.data.datasets.forEach((dataset, i) => {
-                            chart.getDatasetMeta(i).data.forEach((bar, index) => {
-                                const data = dataset.data[index];
-                                if (data > 0) { 
-                                    ctx.fillStyle = '#f4f4f5'; 
-                                    ctx.font = 'bold 12px Inter';
-                                    ctx.textAlign = 'center';
-                                    ctx.textBaseline = 'bottom';
-                                    ctx.fillText(data, bar.x, bar.y - 6);
-                                }
-                            });
-                        });
-                    }
-                }]
-            });
-        }
-
-        function renderAuditLog() {
-            const container = document.getElementById('auditLogContainer');
-            const pagination = document.getElementById('activityPagination');
-            const pageIndicator = document.getElementById('activityPageIndicator');
-            
-            if (!container) return; 
-            
-            container.innerHTML = '';
-            
-            const filteredActivities = auditData.filter(log => log.type !== 'import');
-
-            if (filteredActivities.length === 0) {
-                container.innerHTML = '<p class="text-zinc-500 text-sm italic text-center mt-4">No recent activity found.</p>';
-                if(pagination) pagination.classList.add('hidden');
-                return;
-            }
-
-            const totalPages = Math.ceil(filteredActivities.length / ACTIVITIES_PER_PAGE);
-            if (currentActivityPage > totalPages) currentActivityPage = totalPages;
-            if (currentActivityPage < 1) currentActivityPage = 1;
-
-            const startIndex = (currentActivityPage - 1) * ACTIVITIES_PER_PAGE;
-            const endIndex = startIndex + ACTIVITIES_PER_PAGE;
-            const paginatedLogs = filteredActivities.slice(startIndex, endIndex);
-
-            paginatedLogs.forEach(log => {
-                let colorClass = 'bg-zinc-500';
-                if (log.type === 'create') colorClass = 'bg-blue-500';
-                if (log.type === 'approve') colorClass = 'bg-emerald-500';
-                if (log.type === 'close') colorClass = 'bg-zinc-400';
-                if (log.type === 'reject') colorClass = 'bg-red-500';
-
-                const timeString = new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                const dateString = new Date(log.timestamp).toLocaleDateString();
-
-                container.innerHTML += `
-                    <div class="flex gap-3 text-sm">
-                        <div class="w-2 h-2 mt-1.5 rounded-full ${colorClass} shrink-0"></div>
-                        <div>
-                            <p class="text-zinc-200"><strong>${log.ptwNo}</strong> ${log.action} <span class="text-zinc-400">${log.user}</span>.</p>
-                            <span class="text-xs text-zinc-500">${dateString} ${timeString}</span>
-                        </div>
-                    </div>
-                `;
-            });
-
-            if (pagination && totalPages > 1) {
-                pagination.classList.remove('hidden');
-                if(pageIndicator) pageIndicator.innerText = `Page ${currentActivityPage} / ${totalPages}`;
-                
-                const prevBtn = pagination.querySelector('button:first-child');
-                const nextBtn = pagination.querySelector('button:last-child');
-                
-                if(prevBtn) prevBtn.disabled = currentActivityPage === 1;
-                if(nextBtn) nextBtn.disabled = currentActivityPage === totalPages;
-            } else if(pagination) {
-                pagination.classList.add('hidden');
-            }
-        }
-        window.renderAuditLog = renderAuditLog;
-
-        function prevActivityPage() {
-            if (currentActivityPage > 1) { currentActivityPage--; renderAuditLog(); }
-        }
-        window.prevActivityPage = prevActivityPage;
-
-        function nextActivityPage() {
-            const filteredActivities = auditData.filter(log => log.type !== 'import');
-            const totalPages = Math.ceil(filteredActivities.length / ACTIVITIES_PER_PAGE);
-            if (currentActivityPage < totalPages) { currentActivityPage++; renderAuditLog(); }
-        }
-        window.nextActivityPage = nextActivityPage;
-
-
-        function renderActiveLocationsTable() {
-            const tbody = document.getElementById('activeLocationsTableBody');
-            tbody.innerHTML = '';
-            const approvedPtws = ptwData.filter(d => d.ptwStatus === 'Approved (Open)');
-            
-            if(approvedPtws.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-zinc-500 text-sm">No active work locations found.</td></tr>`;
-                return;
-            }
-
-            approvedPtws.forEach(ptw => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-zinc-800/30 transition-colors cursor-pointer';
-                tr.onclick = () => { switchView('live-execution'); selectRow(ptw.ptwNo); };
-                tr.innerHTML = `
-                    <td class="p-3 text-sm font-medium text-zinc-200 border-b border-zinc-800/50">
-                        <div class="flex items-center gap-2"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500"></i> ${ptw.location}</div>
-                    </td>
-                    <td class="p-3 text-sm font-mono text-zinc-400 border-b border-zinc-800/50">${ptw.ptwNo}</td>
-                    <td class="p-3 text-sm text-zinc-400 border-b border-zinc-800/50 truncate max-w-[250px]">${ptw.scope}</td>
-                    <td class="p-3 text-sm text-zinc-400 border-b border-zinc-800/50">${ptw.workOwner}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-            lucide.createIcons();
-        }
-
-        // --- SHARED FILTERS ---
-
-        function setFilter(status) {
-            currentFilter = status;
-            document.querySelectorAll('.filter-btn').forEach(b => {
-                if (b.dataset.filter === status) {
-                    b.className = "filter-btn px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs font-medium rounded-md border border-zinc-700 transition-colors whitespace-nowrap active:bg-zinc-700";
-                } else {
-                    b.className = "filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap";
-                }
-            });
-            applyFilters();
-        }
-        window.setFilter = setFilter;
-
-        function setUserFilter(status) {
-            currentUserFilter = status;
-            document.querySelectorAll('.user-filter-btn').forEach(b => {
-                if (b.dataset.ufilter === status) {
-                    b.className = "user-filter-btn px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs font-medium rounded-md border border-zinc-700 transition-colors whitespace-nowrap active:bg-zinc-700";
-                } else {
-                    b.className = "user-filter-btn px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 text-xs font-medium rounded-md border border-zinc-800 transition-colors whitespace-nowrap";
-                }
-            });
-            applyFilters();
-        }
-        window.setUserFilter = setUserFilter;
-
-        function applyFilters() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            const activeView = document.querySelector('.nav-link.bg-blue-500\\/10')?.dataset.target || 'dashboard';
-            
-            if (activeView === 'users-roles') {
-                const filteredUsers = userData.filter(u => {
-                    const matchesSearch = u.username.toLowerCase().includes(term) || u.fullName.toLowerCase().includes(term);
-                    let matchesFilter = true;
-                    
-                    if (currentUserFilter === 'Admins') matchesFilter = u.role === 'Admin';
-                    if (currentUserFilter === 'Approvers') matchesFilter = u.rights && (u.rights.approve || u.rights.open || u.rights.cancel || u.rights.reject || u.rights.close);
-                    if (currentUserFilter === 'Inactive') matchesFilter = u.status === 'Inactive';
-                    
-                    return matchesSearch && matchesFilter;
-                });
-                renderUsersTable(filteredUsers);
-            } else {
-                let filtered = ptwData.filter(row => {
-                    const matchesSearch = row.ptwNo.toLowerCase().includes(term) || row.location.toLowerCase().includes(term) || row.scope.toLowerCase().includes(term);
-                    
-                    let matchesStatus = false;
-                    if (activeView === 'live-execution') {
-                        const isLiveStatus = (row.ptwStatus === 'Pending Review' || row.ptwStatus === 'Approved (Open)');
-                        matchesStatus = isLiveStatus && (currentFilter === 'All' || row.ptwStatus === currentFilter);
-                    } else if (activeView === 'my-approvals') {
-                        const isApprovalStatus = (row.ptwStatus === 'Pending Review');
-                        matchesStatus = isApprovalStatus && (currentFilter === 'All' || row.ptwStatus === currentFilter);
-                    } else {
-                        matchesStatus = currentFilter === 'All' || row.ptwStatus === currentFilter;
-                    }
-
-                    return matchesSearch && matchesStatus;
-                });
-
-                // Sorting Logic
-                filtered.sort((a, b) => {
-                    let valA = a[sortColumn];
-                    let valB = b[sortColumn];
-
-                    if (sortColumn === 'date') {
-                         valA = a.createdAt || a.date;
-                         valB = b.createdAt || b.date;
-                    } else if (sortColumn === 'critical') {
-                         valA = a.critical ? 1 : 0;
-                         valB = b.critical ? 1 : 0;
-                    } else {
-                        valA = String(valA || '').toLowerCase();
-                        valB = String(valB || '').toLowerCase();
-                    }
-
-                    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-                    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-                    return 0;
-                });
-
-                renderTable(filtered);
-            }
-        }
-        window.applyFilters = applyFilters;
-        
-        // --- SORTING LOGIC ---
-        
-        function handleSort(column) {
-            if (sortColumn === column) {
-                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortColumn = column;
-                sortDirection = 'asc';
-            }
-            updateSortIcons();
-            applyFilters();
-        }
-        window.handleSort = handleSort;
-
-        function updateSortIcons() {
-            const columns = ['ptwNo', 'date', 'requester', 'scope', 'location', 'critical', 'ptwStatus'];
-            columns.forEach(col => {
-                const iconEl = document.getElementById(`sort-icon-${col}`);
-                if (!iconEl) return;
-
-                if (col === sortColumn) {
-                    iconEl.setAttribute('data-lucide', sortDirection === 'asc' ? 'arrow-up' : 'arrow-down');
-                    iconEl.classList.remove('opacity-0', 'group-hover:opacity-50', 'text-zinc-500');
-                    iconEl.classList.add('text-blue-500', 'opacity-100');
-                } else {
-                    iconEl.setAttribute('data-lucide', 'arrow-down-up');
-                    iconEl.classList.remove('text-blue-500', 'opacity-100');
-                    iconEl.classList.add('opacity-0', 'group-hover:opacity-50', 'text-zinc-500');
-                }
-            });
-            lucide.createIcons();
-        }
-
-
-        // --- PTW GRID & DETAILS ---
 
         function getStatusStyles(status) {
             switch(status) {
-                case 'Cancelled': return 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
+                case 'Cancelled': return 'bg-zinc-800 text-zinc-400 border-zinc-700';
                 case 'Rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
                 case 'Pending Review': return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
                 case 'Approved (Open)': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
@@ -1380,550 +577,220 @@
             }
         }
 
-        function renderTable(data) {
-            const tbody = document.getElementById('ptwTableBody');
-            tbody.innerHTML = '';
+        function createPtwCard(ptw) {
+            const statusStyle = getStatusStyles(ptw.ptwStatus);
+            const critIcon = ptw.critical ? `<i data-lucide="alert-triangle" class="w-3 h-3 text-red-500 inline ml-1"></i>` : '';
+            const timeDisplay = (ptw.startTime && ptw.endTime) ? `<div class="flex items-center gap-1 mt-1 text-[10px] text-blue-400/90"><i data-lucide="clock" class="w-3 h-3"></i> ${ptw.startTime} - ${ptw.endTime}</div>` : '';
+            
+            return `
+                <div onclick="openPtwDetails('${ptw.ptwNo}')" class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 active:bg-zinc-800/80 transition-colors">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-mono text-sm font-bold text-zinc-200">${ptw.ptwNo} ${critIcon}</div>
+                        <span class="px-2 py-0.5 text-[10px] font-medium rounded border ${statusStyle}">${ptw.ptwStatus}</span>
+                    </div>
+                    <p class="text-sm text-zinc-400 line-clamp-2 mb-3">${ptw.scope}</p>
+                    <div class="flex items-start justify-between text-xs text-zinc-500">
+                        <div class="flex items-center gap-1 truncate w-3/5 pt-0.5"><i data-lucide="map-pin" class="w-3 h-3 text-emerald-500 shrink-0"></i> <span class="truncate">${ptw.location}</span></div>
+                        <div class="shrink-0 whitespace-nowrap text-right flex flex-col items-end">
+                            <span>${ptw.date.split(',')[1]?.trim() || ptw.date}</span>
+                            ${timeDisplay}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-zinc-500 text-sm">No permits found matching your criteria.</td></tr>`;
-            }
-
-            data.forEach((row) => {
-                const tr = document.createElement('tr');
-                tr.className = `hover:bg-zinc-800/50 cursor-pointer transition-colors group ${selectedRowId === row.ptwNo ? 'selected-row' : ''}`;
-                tr.onclick = () => selectRow(row.ptwNo);
-                
-                const statusClass = getStatusStyles(row.ptwStatus);
-                const criticalBadge = row.critical ? `<span class="inline-flex items-center justify-center w-6 h-6 rounded bg-red-500/10 text-red-500 border border-red-500/20"><i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i></span>` : `<span class="text-zinc-600">-</span>`;
-
-                tr.innerHTML = `
-                    <td class="p-3 text-sm font-mono text-zinc-300 border-b border-zinc-800/50">${row.ptwNo}</td>
-                    <td class="p-3 text-sm text-zinc-400 border-b border-zinc-800/50">${row.date}</td>
-                    <td class="p-3 text-sm text-zinc-300 border-b border-zinc-800/50">${row.requester}</td>
-                    <td class="p-3 text-sm text-zinc-300 border-b border-zinc-800/50 truncate max-w-[200px]" title="${row.scope}">${row.scope}</td>
-                    <td class="p-3 text-sm text-zinc-400 border-b border-zinc-800/50">${row.location}</td>
-                    <td class="p-3 text-sm text-center border-b border-zinc-800/50">${criticalBadge}</td>
-                    <td class="p-3 text-sm border-b border-zinc-800/50"><span class="px-2.5 py-1 text-xs font-medium rounded-md border ${statusClass}">${row.ptwStatus}</span></td>
-                `;
-                tbody.appendChild(tr);
-            });
+        function renderHome() {
+            const activeCount = ptwData.filter(d => d.ptwStatus === 'Approved (Open)').length;
+            document.getElementById('statMyActive').innerText = activeCount;
+            
+            const pendingPtws = ptwData.filter(d => d.ptwStatus === 'Pending Review');
+            const displayPtws = pendingPtws.slice(0, 5); // Just show top 5 on home
+            document.getElementById('recentPermitsCount').innerText = `${pendingPtws.length} Total`;
+            
+            const container = document.getElementById('homePermitList');
+            if (displayPtws.length === 0) container.innerHTML = `<p class="text-center text-zinc-500 text-sm py-4">No pending permits found.</p>`;
+            else container.innerHTML = displayPtws.map(createPtwCard).join('');
+            
             lucide.createIcons();
         }
 
-        function selectRow(ptwNo) {
-            selectedRowId = ptwNo;
-            applyFilters(); 
-            const ptw = ptwData.find(p => p.ptwNo === ptwNo);
-            if(ptw) populateDetailsPane(ptw);
+        function renderLivePermits() {
+            const term = document.getElementById('searchLive').value.toLowerCase();
+            const todayDateString = new Date().toDateString();
+            
+            let livePtws = ptwData.filter(d => {
+                if (d.ptwStatus !== 'Approved (Open)') return false;
+                
+                // Parse date logic to strictly check the scheduled execution date
+                let pDate = new Date(); // fallback
+                if (d.date) {
+                    const dateStr = d.date.split(',')[1]?.trim(); // e.g. extracts "30/03/26" from "Mon, 30/03/26"
+                    if (dateStr) {
+                        const parts = dateStr.split('/');
+                        if (parts.length === 3) {
+                            // new Date(year, monthIndex, day)
+                            pDate = new Date(2000 + parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+                        }
+                    }
+                }
+                
+                return pDate.toDateString() === todayDateString;
+            });
+            
+            if (term) {
+                livePtws = livePtws.filter(p => 
+                    p.ptwNo.toLowerCase().includes(term) || 
+                    p.location.toLowerCase().includes(term) || 
+                    p.scope.toLowerCase().includes(term)
+                );
+            }
+
+            const container = document.getElementById('livePermitList');
+            if (livePtws.length === 0) container.innerHTML = `<div class="text-center py-10 text-zinc-500"><i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 opacity-20"></i><p class="text-sm">No active permits today.</p></div>`;
+            else container.innerHTML = livePtws.map(createPtwCard).join('');
+            
+            lucide.createIcons();
         }
-        window.selectRow = selectRow;
 
-        function populateDetailsPane(ptw) {
-            document.getElementById('emptyState').classList.add('hidden');
-            const filledState = document.getElementById('filledState');
-            filledState.classList.remove('hidden');
+        function renderApprovals() {
+            const pendingPtws = ptwData.filter(d => d.ptwStatus === 'Pending Review');
+            const container = document.getElementById('approvalsPermitList');
+            
+            if (pendingPtws.length === 0) container.innerHTML = `<div class="text-center py-10 text-zinc-500"><i data-lucide="check-circle" class="w-10 h-10 mx-auto mb-2 opacity-20"></i><p class="text-sm">All caught up!</p></div>`;
+            else container.innerHTML = pendingPtws.map(createPtwCard).join('');
+            
+            lucide.createIcons();
+        }
 
-            const pane = document.getElementById('detailsPane');
-            pane.classList.remove('hidden');
-            pane.classList.add('w-full', 'absolute', 'inset-0', 'z-20');
-            pane.classList.replace('lg:w-[450px]', 'lg:w-[450px]');
-            pane.classList.replace('xl:w-[500px]', 'xl:w-[500px]');
-            if(window.innerWidth >= 1024) pane.classList.remove('absolute', 'inset-0', 'w-full');
+        // --- DETAILS & ACTIONS ---
+
+        function openPtwDetails(ptwNo) {
+            selectedPtwId = ptwNo;
+            const ptw = ptwData.find(p => p.ptwNo === ptwNo);
+            if (!ptw) return;
 
             document.getElementById('detailPtwNo').innerText = ptw.ptwNo;
             document.getElementById('detailDate').innerText = ptw.date;
-            document.getElementById('detailTime').innerText = `${ptw.startTime} - ${ptw.endTime}`;
+            document.getElementById('detailScope').innerText = ptw.scope;
+            document.getElementById('detailLocation').innerText = ptw.location;
             document.getElementById('detailRequester').innerText = ptw.requester;
             document.getElementById('detailWorkOwner').innerText = ptw.workOwner;
-            document.getElementById('detailLocation').innerText = ptw.location;
-            document.getElementById('detailScope').innerText = ptw.scope;
-
-            const statusBadge = document.getElementById('detailStatusBadge');
-            statusBadge.className = `px-2 py-0.5 rounded text-xs font-medium border ${getStatusStyles(ptw.ptwStatus)}`;
-            statusBadge.innerText = ptw.ptwStatus;
+            document.getElementById('detailReviewer').innerText = ptw.reviewer || '-';
+            document.getElementById('detailApprover').innerText = ptw.approver || '-';
+            
+            const badge = document.getElementById('detailStatusBadge');
+            badge.className = `px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusStyles(ptw.ptwStatus)}`;
+            badge.innerText = ptw.ptwStatus;
 
             document.getElementById('tagCritical').style.display = ptw.critical ? 'flex' : 'none';
             document.getElementById('valLoto').innerText = ptw.loto;
             document.getElementById('valBypass').innerText = ptw.bypass;
 
-            const timeline = document.getElementById('workflowTimeline');
-            let step23Color = 'bg-zinc-700';
-            if (['Approved (Open)', 'Closed', 'Cancelled'].includes(ptw.ptwStatus)) {
-                step23Color = 'bg-emerald-500';
-            }
-
-            let stepsHTML = `
-                <div class="relative">
-                    <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-zinc-900"></div>
-                    <div class="text-sm font-medium text-zinc-200">Registered</div>
-                    <div class="text-xs text-zinc-500 mt-0.5">By ${ptw.requester}</div>
-                </div>
-                <div class="relative">
-                    <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ${step23Color} ring-4 ring-zinc-900"></div>
-                    <div class="text-sm font-medium text-zinc-200">Reviewed</div>
-                    <div class="text-xs text-zinc-500 mt-0.5">Reviewer: ${ptw.reviewer || '-'}</div>
-                </div>
-                <div class="relative">
-                    <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ${step23Color} ring-4 ring-zinc-900"></div>
-                    <div class="text-sm font-medium text-zinc-200">Open Approval</div>
-                    <div class="text-xs text-zinc-500 mt-0.5">Approver: ${ptw.approver || '-'}</div>
-                </div>
-            `;
-
-            if (ptw.ptwStatus === 'Closed') {
-                stepsHTML += `
-                    <div class="relative">
-                        <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-zinc-900"></div>
-                        <div class="text-sm font-medium text-zinc-200">Closed</div>
-                        <div class="text-xs text-zinc-500 mt-0.5">Execution Completed</div>
-                    </div>
-                `;
-            } else if (ptw.ptwStatus === 'Cancelled') {
-                stepsHTML += `
-                    <div class="relative">
-                        <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-zinc-500 ring-4 ring-zinc-900"></div>
-                        <div class="text-sm font-medium text-zinc-200">Cancelled</div>
-                        <div class="text-xs text-zinc-500 mt-0.5">Execution Stopped</div>
-                    </div>
-                `;
-            } else if (ptw.ptwStatus === 'Rejected') {
-                stepsHTML += `
-                    <div class="relative">
-                        <div class="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-4 ring-zinc-900"></div>
-                        <div class="text-sm font-medium text-zinc-200">Rejected</div>
-                        <div class="text-xs text-zinc-500 mt-0.5">Permit Denied</div>
-                    </div>
-                `;
-            }
-
-            timeline.innerHTML = stepsHTML;
-
-            const footer = document.getElementById('actionFooter');
+            // Generate Action Buttons based on RBAC and Status
+            const footer = document.getElementById('mobileActionFooter');
             footer.innerHTML = '';
-
-            const canApprove = loggedInUser?.rights?.approve;
-            const canReject = loggedInUser?.rights?.reject;
-            const canCancel = loggedInUser?.rights?.cancel;
-            const canClose = loggedInUser?.rights?.close;
+            
+            const r = loggedInUser.rights || {};
 
             if (ptw.ptwStatus === 'Pending Review') {
-                const endorseAttr = canApprove ? '' : 'disabled title="Requires Approval right"';
-                const rejectAttr = canReject ? '' : 'disabled title="Requires Reject right"';
-
-                footer.innerHTML = `
-                    <button ${rejectAttr} onclick="openModal('Reject')" class="flex-1 py-2.5 bg-zinc-800 hover:bg-red-500/10 disabled:hover:bg-zinc-800 text-zinc-300 hover:text-red-500 disabled:text-zinc-600 border border-zinc-700 disabled:border-zinc-800 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors">Reject</button>
-                    <button ${endorseAttr} onclick="openModal('Endorse')" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:hover:bg-zinc-800 text-white disabled:text-zinc-500 disabled:shadow-none disabled:cursor-not-allowed rounded-lg text-sm font-medium shadow-lg shadow-blue-500/20 transition-colors">Endorse</button>
-                `;
-            } else if (ptw.ptwStatus === 'Approved (Open)') {
-                const cancelAttr = canCancel ? '' : 'disabled title="Requires Cancel right"';
-                const rejectAttr = canReject ? '' : 'disabled title="Requires Reject right"';
-                const closeAttr = canClose ? '' : 'disabled title="Requires Close right"';
-
-                footer.innerHTML = `
-                    <button ${cancelAttr} onclick="openModal('Cancel')" class="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:hover:bg-zinc-800 text-zinc-300 hover:text-white disabled:text-zinc-600 border border-zinc-700 disabled:border-zinc-800 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors">Cancel</button>
-                    <button ${rejectAttr} onclick="openModal('Reject_Execution')" class="flex-1 py-2.5 bg-zinc-800 hover:bg-red-500/10 disabled:hover:bg-zinc-800 text-zinc-300 hover:text-red-500 disabled:text-zinc-600 border border-zinc-700 disabled:border-zinc-800 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors">Reject</button>
-                    <button ${closeAttr} onclick="openModal('Close')" class="flex-[2] py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-800 disabled:hover:bg-zinc-800 text-white disabled:text-zinc-500 disabled:shadow-none disabled:cursor-not-allowed rounded-lg text-sm font-medium shadow-lg shadow-emerald-500/20 transition-colors flex items-center justify-center gap-2">
-                        <i data-lucide="check-circle" class="w-4 h-4"></i> Sign Close
-                    </button>
-                `;
-            } else {
-                footer.innerHTML = `<div class="w-full py-2.5 bg-zinc-900 text-zinc-500 text-center rounded-lg text-sm font-medium border border-zinc-800">No actions available.</div>`;
-            }
-            lucide.createIcons();
-        }
-
-        function closeDetails() {
-            const pane = document.getElementById('detailsPane');
-            if(window.innerWidth < 1024) pane.classList.add('hidden');
-            else {
-                document.getElementById('emptyState').classList.remove('hidden');
-                document.getElementById('filledState').classList.add('hidden');
-            }
-            selectedRowId = null;
-            applyFilters();
-        }
-        window.closeDetails = closeDetails;
-
-        // --- USERS & ROLES LOGIC ---
-
-        function populateRoleDropdowns() {
-            const optionsHTML = roleData.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
-            const editRole = document.getElementById('editUserRole');
-            const newRole = document.getElementById('newUserRole');
-            if(editRole) editRole.innerHTML = optionsHTML;
-            if(newRole) newRole.innerHTML = optionsHTML;
-        }
-
-        function renderUsersTable(data) {
-            const tbody = document.getElementById('usersTableBody');
-            tbody.innerHTML = '';
-
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-zinc-500 text-sm">No users found.</td></tr>`;
-                return;
-            }
-
-            data.forEach((user) => {
-                const tr = document.createElement('tr');
-                tr.className = `hover:bg-zinc-800/50 cursor-pointer transition-colors group ${selectedUserId === user.id ? 'selected-row' : ''}`;
-                tr.onclick = () => selectUserRow(user.id);
+                const btnReject = r.reject 
+                    ? `<button onclick="confirmActionInit('Reject')" class="flex-1 py-3.5 bg-zinc-800 text-red-500 rounded-xl font-medium text-sm">Reject</button>`
+                    : '';
+                const btnEndorse = r.approve 
+                    ? `<button onclick="confirmActionInit('Endorse')" class="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-blue-500/20">Endorse</button>`
+                    : '';
                 
-                const activeRights = Object.entries(user.rights || {}).filter(([k,v]) => v).map(([k]) => k).join(', ') || 'None';
-                const statusBadge = user.status === 'Inactive' 
-                    ? '<span class="px-2 py-0.5 rounded text-xs bg-zinc-800 border border-zinc-700 text-zinc-500">Inactive</span>'
-                    : '<span class="px-2 py-0.5 rounded text-xs bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">Active</span>';
-                const oooIcon = user.outOfOffice ? '<i data-lucide="plane" class="w-3.5 h-3.5 text-orange-400 inline ml-2" title="Out of Office"></i>' : '';
+                footer.innerHTML = btnReject + btnEndorse || `<div class="w-full text-center text-zinc-500 text-sm py-2">No actions available.</div>`;
+            } 
+            else if (ptw.ptwStatus === 'Approved (Open)') {
+                const btnCancel = r.cancel 
+                    ? `<button onclick="confirmActionInit('Cancel')" class="flex-1 py-3.5 bg-zinc-800 text-zinc-300 rounded-xl font-medium text-sm">Cancel</button>`
+                    : '';
+                const btnClose = r.close 
+                    ? `<button onclick="confirmActionInit('Close')" class="flex-1 py-3.5 bg-emerald-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-emerald-500/20">Sign Close</button>`
+                    : '';
+                
+                footer.innerHTML = btnCancel + btnClose || `<div class="w-full text-center text-zinc-500 text-sm py-2">No actions available.</div>`;
+            } else {
+                footer.style.display = 'none'; // hide footer
+            }
+            if (footer.innerHTML !== '') footer.style.display = 'flex';
 
-                tr.innerHTML = `
-                    <td class="p-3 text-sm font-medium text-zinc-300 border-b border-zinc-800/50 flex items-center">${user.username}${oooIcon}</td>
-                    <td class="p-3 text-sm text-zinc-400 border-b border-zinc-800/50">${user.fullName}</td>
-                    <td class="p-3 text-sm text-zinc-400 border-b border-zinc-800/50"><span class="px-2 py-0.5 rounded text-xs bg-zinc-800 border border-zinc-700 text-zinc-300">${user.role}</span></td>
-                    <td class="p-3 text-sm text-zinc-500 border-b border-zinc-800/50 capitalize truncate max-w-[150px]">${activeRights}</td>
-                    <td class="p-3 text-sm text-center border-b border-zinc-800/50">${statusBadge}</td>
-                `;
-                tbody.appendChild(tr);
-            });
             lucide.createIcons();
+            const modal = document.getElementById('ptwDetailsModal');
+            modal.classList.remove('hidden');
+            // Small timeout to allow display:block to apply before animating transform
+            setTimeout(() => modal.classList.add('active'), 10);
         }
+        window.openPtwDetails = openPtwDetails;
 
-        function selectUserRow(userId) {
-            selectedUserId = userId;
-            applyFilters(); 
-            const user = userData.find(u => u.id === userId);
-            if(user) populateUserDetailsPane(user);
+        function closePtwDetails() {
+            const modal = document.getElementById('ptwDetailsModal');
+            modal.classList.remove('active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+            selectedPtwId = null;
         }
-        window.selectUserRow = selectUserRow;
+        window.closePtwDetails = closePtwDetails;
 
-        function populateUserDetailsPane(user) {
-            document.getElementById('userEmptyState').classList.add('hidden');
-            const filledState = document.getElementById('userFilledState');
-            filledState.classList.remove('hidden');
+        // --- ACTION CONFIRMATION ---
 
-            const pane = document.getElementById('userDetailsPane');
-            pane.classList.remove('hidden');
-            pane.classList.add('w-full', 'absolute', 'inset-0', 'z-20');
-            pane.classList.replace('lg:w-[400px]', 'lg:w-[400px]');
-            if(window.innerWidth >= 1024) pane.classList.remove('absolute', 'inset-0', 'w-full');
-
-            document.getElementById('detailUsername').innerText = `@${user.username}`;
-            document.getElementById('editUserFullName').value = user.fullName || '';
-            document.getElementById('editUserRole').value = user.role || '';
-            document.getElementById('editUserStatus').value = user.status || 'Active';
-            document.getElementById('editUserLocations').value = user.authorizedLocations || '';
-            document.getElementById('editUserOoo').value = user.outOfOffice ? 'true' : 'false';
-            document.getElementById('editUserDelegate').value = user.delegatedTo || '';
-            document.getElementById('editUserPin').value = user.pin || '';
-            
-            document.getElementById('editRightApprove').checked = user.rights?.approve || false;
-            document.getElementById('editRightOpen').checked = user.rights?.open || false;
-            document.getElementById('editRightCancel').checked = user.rights?.cancel || false;
-            document.getElementById('editRightReject').checked = user.rights?.reject || false;
-            document.getElementById('editRightClose').checked = user.rights?.close || false;
-        }
-
-        function closeUserDetails() {
-            const pane = document.getElementById('userDetailsPane');
-            if(window.innerWidth < 1024) pane.classList.add('hidden');
-            else {
-                document.getElementById('userEmptyState').classList.remove('hidden');
-                document.getElementById('userFilledState').classList.add('hidden');
-            }
-            selectedUserId = null;
-            applyFilters();
-        }
-        window.closeUserDetails = closeUserDetails;
-
-        async function updateUserDetails(event) {
-            event.preventDefault();
-            if (!selectedUserId) return;
-
-            const user = userData.find(u => u.id === selectedUserId);
-            const newStatus = document.getElementById('editUserStatus').value;
-            
-            if (user.username.toLowerCase() === 'admin' && newStatus === 'Inactive') {
-                alert("Action Denied: The master Admin user cannot be deactivated.");
-                return;
-            }
-
-            const updatedData = {
-                fullName: document.getElementById('editUserFullName').value,
-                role: document.getElementById('editUserRole').value,
-                status: newStatus,
-                authorizedLocations: document.getElementById('editUserLocations').value,
-                outOfOffice: document.getElementById('editUserOoo').value === 'true',
-                delegatedTo: document.getElementById('editUserDelegate').value,
-                pin: document.getElementById('editUserPin').value,
-                rights: {
-                    approve: document.getElementById('editRightApprove').checked,
-                    open: document.getElementById('editRightOpen').checked,
-                    cancel: document.getElementById('editRightCancel').checked,
-                    reject: document.getElementById('editRightReject').checked,
-                    close: document.getElementById('editRightClose').checked
-                }
-            };
-
-            if (isOfflineMode) {
-                Object.assign(user, updatedData);
-                refreshActiveView();
-                alert("User updated successfully (Offline Mode).");
-                return;
-            }
-
-            try {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.id);
-                await updateDoc(docRef, updatedData);
-                alert("User successfully updated in Firebase.");
-            } catch (error) {
-                console.error("Error updating user: ", error);
-                alert("Failed to update user.");
-            }
-        }
-        window.updateUserDetails = updateUserDetails;
-        
-        async function deleteUser() {
-            if (!selectedUserId) return;
-            const user = userData.find(u => u.id === selectedUserId);
-            
-            if(user.username.toLowerCase() === 'admin') {
-                alert("Action Denied: The master Admin user cannot be deleted.");
-                return;
-            }
-            
-            if(!confirm(`Are you sure you want to permanently delete user @${user.username}?`)) return;
-
-            if (isOfflineMode) {
-                userData = userData.filter(u => u.id !== selectedUserId);
-                closeUserDetails();
-                refreshActiveView();
-                return;
-            }
-
-            try {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', selectedUserId);
-                await deleteDoc(docRef);
-                closeUserDetails();
-            } catch(e) {
-                console.error("Failed to delete user:", e);
-                alert("Failed to delete user from Firebase.");
-            }
-        }
-        window.deleteUser = deleteUser;
-
-        function openAddUserModal() {
-            const modal = document.getElementById('addUserModal');
-            const content = document.getElementById('addUserModalContent');
-            document.getElementById('addUserForm').reset();
+        function confirmActionInit(action) {
+            pendingAction = action;
+            const modal = document.getElementById('actionConfirmModal');
+            const content = document.getElementById('actionConfirmContent');
             modal.classList.remove('hidden');
             setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
         }
-        window.openAddUserModal = openAddUserModal;
+        window.confirmActionInit = confirmActionInit;
 
-        function closeAddUserModal() {
-            const modal = document.getElementById('addUserModal');
-            const content = document.getElementById('addUserModalContent');
+        function closeActionModal() {
+            const modal = document.getElementById('actionConfirmModal');
+            const content = document.getElementById('actionConfirmContent');
             modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            setTimeout(() => { modal.classList.add('hidden'); pendingAction = ''; }, 300);
         }
-        window.closeAddUserModal = closeAddUserModal;
+        window.closeActionModal = closeActionModal;
 
-        async function submitNewUser(event) {
-            event.preventDefault();
-
-            const newUser = {
-                username: document.getElementById('newUserUsername').value,
-                fullName: document.getElementById('newUserFullName').value,
-                role: document.getElementById('newUserRole').value,
-                status: 'Active',
-                authorizedLocations: document.getElementById('newUserLocations').value || 'All',
-                outOfOffice: false,
-                delegatedTo: '',
-                pin: document.getElementById('newUserPin').value,
-                rights: {
-                    approve: document.getElementById('addRightApprove').checked,
-                    open: document.getElementById('addRightOpen').checked,
-                    cancel: document.getElementById('addRightCancel').checked,
-                    reject: document.getElementById('addRightReject').checked,
-                    close: document.getElementById('addRightClose').checked
-                },
-                createdAt: new Date().toISOString()
-            };
-
-            if(isOfflineMode) { 
-                newUser.id = 'u' + Date.now();
-                userData.push(newUser);
-                closeAddUserModal();
-                refreshActiveView();
-                alert(`Successfully registered new user: ${newUser.username}`);
-                return;
-            }
-
-            try {
-                const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
-                await addDoc(usersRef, newUser);
-                closeAddUserModal();
-                alert(`Successfully registered new user to Firebase.`);
-            } catch (error) {
-                console.error("Error adding user: ", error);
-                alert("Failed to add user to Firebase.");
-            }
-        }
-        window.submitNewUser = submitNewUser;
-
-        // --- MANAGE ROLES LOGIC ---
-        
-        function openManageRolesModal() {
-            const modal = document.getElementById('manageRolesModal');
-            const content = document.getElementById('manageRolesModalContent');
-            document.getElementById('newRoleName').value = '';
-            renderRolesList();
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
-        }
-        window.openManageRolesModal = openManageRolesModal;
-
-        function closeManageRolesModal() {
-            const modal = document.getElementById('manageRolesModal');
-            const content = document.getElementById('manageRolesModalContent');
-            modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => { modal.classList.add('hidden'); }, 300);
-        }
-        window.closeManageRolesModal = closeManageRolesModal;
-
-        function renderRolesList() {
-            const container = document.getElementById('rolesListContainer');
-            if(!container) return;
-            container.innerHTML = '';
-            
-            roleData.forEach(role => {
-                container.innerHTML += `
-                    <div class="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
-                        <div class="text-sm text-zinc-200 font-medium">${role.name}</div>
-                        <button onclick="deleteRole('${role.id}')" class="text-zinc-500 hover:text-red-500 transition-colors p-1" title="Delete Role">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                `;
-            });
-            lucide.createIcons();
-        }
-
-        async function submitNewRole(event) {
-            event.preventDefault();
-            const roleName = document.getElementById('newRoleName').value.trim();
-            if(!roleName) return;
-
-            if (isOfflineMode) {
-                roleData.push({ id: 'r' + Date.now(), name: roleName });
-                document.getElementById('newRoleName').value = '';
-                populateRoleDropdowns();
-                renderRolesList();
-                return;
-            }
-
-            try {
-                const rolesRef = collection(db, 'artifacts', appId, 'public', 'data', 'roles');
-                await addDoc(rolesRef, { name: roleName });
-                document.getElementById('newRoleName').value = '';
-            } catch(e) {
-                console.error("Failed to add role:", e);
-            }
-        }
-        window.submitNewRole = submitNewRole;
-
-        async function deleteRole(roleId) {
-            if(!confirm("Are you sure you want to delete this role?")) return;
-
-            if(isOfflineMode) {
-                roleData = roleData.filter(r => r.id !== roleId);
-                populateRoleDropdowns();
-                renderRolesList();
-                return;
-            }
-
-            try {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'roles', roleId);
-                await deleteDoc(docRef);
-            } catch(e) {
-                console.error("Failed to delete role:", e);
-            }
-        }
-        window.deleteRole = deleteRole;
-
-
-        // --- PTW USER ACTIONS (MODALS) ---
-
-        function openModal(actionType) {
-            currentApprovalAction = actionType; 
-            const modal = document.getElementById('approvalModal');
-            const content = document.getElementById('modalContent');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
-        }
-        window.openModal = openModal;
-
-        function closeModal() {
-            const modal = document.getElementById('approvalModal');
-            const content = document.getElementById('modalContent');
-            modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => { modal.classList.add('hidden'); currentApprovalAction = ''; }, 300); 
-        }
-        window.closeModal = closeModal;
-
-        async function confirmAction() {
-            const ptw = ptwData.find(p => p.ptwNo === selectedRowId);
+        async function executeConfirmedAction() {
+            const ptw = ptwData.find(p => p.ptwNo === selectedPtwId);
             if (!ptw) return;
 
             let newStatus = ptw.ptwStatus;
             let logType = 'approve';
             let actionText = 'was updated by';
 
-            if (currentApprovalAction === 'Reject') {
-                newStatus = 'Rejected';
-                actionText = 'was Rejected by';
-                logType = 'reject';
-            } else if (currentApprovalAction === 'Endorse') {
-                newStatus = 'Approved (Open)';
-                actionText = 'received Open Approval from';
-                logType = 'approve';
-            } else if (currentApprovalAction === 'Cancel') {
-                newStatus = 'Cancelled';
-                actionText = 'was Cancelled during execution by';
-                logType = 'reject';
-            } else if (currentApprovalAction === 'Reject_Execution') {
-                newStatus = 'Rejected';
-                actionText = 'was Rejected during execution by';
-                logType = 'reject';
-            } else if (currentApprovalAction === 'Close') {
-                newStatus = 'Closed';
-                actionText = 'was Closed by';
-                logType = 'close';
-            }
+            if (pendingAction === 'Reject') { newStatus = 'Rejected'; actionText = 'was Rejected by'; logType = 'reject'; }
+            else if (pendingAction === 'Endorse') { newStatus = 'Approved (Open)'; actionText = 'received Open Approval from'; logType = 'approve'; }
+            else if (pendingAction === 'Cancel') { newStatus = 'Cancelled'; actionText = 'was Cancelled by'; logType = 'reject'; }
+            else if (pendingAction === 'Close') { newStatus = 'Closed'; actionText = 'was Closed by'; logType = 'close'; }
 
-            if(isOfflineMode) { 
+            closeActionModal();
+            closePtwDetails();
+
+            if (isOfflineMode) {
                 ptw.ptwStatus = newStatus;
-                logActivity(ptw.ptwNo, actionText, loggedInUser?.fullName || 'System', logType);
-                closeModal();
-                refreshActiveView();
-                closeDetails();
+                // logActivity is not fully defined in this snippet but assumed available via desktop app setup
+                // logActivity(ptw.ptwNo, actionText, loggedInUser.fullName, logType);
+                updateUI();
                 return;
             }
 
             try {
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'ptws', ptw.id);
                 await updateDoc(docRef, { ptwStatus: newStatus });
-                logActivity(ptw.ptwNo, actionText, loggedInUser?.fullName || 'System', logType);
-                closeModal();
-                closeDetails(); 
+                // logActivity(ptw.ptwNo, actionText, loggedInUser.fullName, logType);
             } catch (error) {
-                console.error("Error updating document: ", error);
-                alert("Failed to record action in Firebase.");
+                console.error("Error updating doc:", error);
+                alert("Failed to update status.");
             }
         }
-        window.confirmAction = confirmAction;
+        window.executeConfirmedAction = executeConfirmedAction;
+
+        // --- ADD PTW LOGIC ---
 
         function openAddPtwModal() {
             const modal = document.getElementById('addPtwModal');
-            const content = document.getElementById('addPtwModalContent');
             document.getElementById('addPtwForm').reset();
             
             // Pre-fill requester with logged in user
@@ -1931,39 +798,71 @@
             if (requesterField) {
                 requesterField.value = loggedInUser?.fullName || '';
             }
-
+            
             modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+            setTimeout(() => modal.classList.add('active'), 10);
         }
         window.openAddPtwModal = openAddPtwModal;
 
         function closeAddPtwModal() {
             const modal = document.getElementById('addPtwModal');
-            const content = document.getElementById('addPtwModalContent');
+            modal.classList.remove('active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+        window.closeAddPtwModal = closeAddPtwModal;
+
+        function showNotification(title, message) {
+            document.getElementById('notificationTitle').innerText = title;
+            document.getElementById('notificationMessage').innerText = message;
+            const modal = document.getElementById('notificationModal');
+            const content = document.getElementById('notificationModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+            lucide.createIcons();
+        }
+        window.showNotification = showNotification;
+
+        function closeNotification() {
+            const modal = document.getElementById('notificationModal');
+            const content = document.getElementById('notificationModalContent');
             modal.classList.add('opacity-0'); content.classList.add('scale-95');
             setTimeout(() => { modal.classList.add('hidden'); }, 300);
         }
-        window.closeAddPtwModal = closeAddPtwModal;
+        window.closeNotification = closeNotification;
 
         async function submitNewPtw(event) {
             event.preventDefault();
             
             const rawDate = document.getElementById('newDate').value;
+            const startTime = document.getElementById('newStartTime').value;
+
+            // --- Past Date/Time Validation ---
+            if (rawDate && startTime) {
+                const selectedDateTime = new Date(`${rawDate}T${startTime}`);
+                const now = new Date();
+                if (selectedDateTime < now) {
+                    showNotification("Invalid Time Selection", "Cannot create a Permit to Work in the past. The selected time is not applicable. Please select a valid future date and start time.");
+                    return;
+                }
+            }
+
             const d = new Date(rawDate);
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const formattedDate = `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
 
-            // Dynamic FMD-YY-XXXX numbering logic
-            const currentYearStr = String(new Date().getFullYear()).slice(-2);
-            const prefix = `FMD-${currentYearStr}-`;
+            // Dynamic FMD-YY-MM-XXX numbering logic
+            const now = new Date();
+            const currentYearStr = String(now.getFullYear()).slice(-2);
+            const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0');
+            const prefix = `FMD-${currentYearStr}-${currentMonthStr}-`;
 
             let newIdNum = 1;
-            const currentYearPtws = ptwData.filter(p => p.ptwNo && p.ptwNo.startsWith(prefix));
-            if (currentYearPtws.length > 0) {
-                const ids = currentYearPtws.map(p => parseInt(p.ptwNo.split('-').pop() || '0'));
+            const currentMonthPtws = ptwData.filter(p => p.ptwNo && p.ptwNo.startsWith(prefix));
+            if (currentMonthPtws.length > 0) {
+                const ids = currentMonthPtws.map(p => parseInt(p.ptwNo.split('-').pop() || '0'));
                 newIdNum = Math.max(...ids) + 1;
             }
-            const newPtwNo = `${prefix}${String(newIdNum).padStart(4, '0')}`;
+            const newPtwNo = `${prefix}${String(newIdNum).padStart(3, '0')}`;
 
             const newPtw = {
                 ptwNo: newPtwNo,
@@ -1984,223 +883,31 @@
                 createdAt: new Date().toISOString()
             };
 
-            if(isOfflineMode) { 
+            closeAddPtwModal();
+
+            if (isOfflineMode) {
                 ptwData.push(newPtw);
                 ptwData.sort((a, b) => b.ptwNo.localeCompare(a.ptwNo));
-                logActivity(newPtwNo, 'was submitted for review by', loggedInUser?.fullName || newPtw.requester, 'create');
-                closeAddPtwModal();
-                refreshActiveView();
-                alert(`Registered new Permit (Offline Mode): ${newPtwNo}`);
+                // logActivity(newPtwNo, 'was submitted by', loggedInUser.fullName, 'create');
+                updateUI();
                 return;
             }
 
             try {
                 const ptwsRef = collection(db, 'artifacts', appId, 'public', 'data', 'ptws');
                 await addDoc(ptwsRef, newPtw);
-                logActivity(newPtwNo, 'was submitted for review by', loggedInUser?.fullName || newPtw.requester, 'create');
-                closeAddPtwModal();
-                alert(`Successfully registered new Permit: ${newPtwNo}`);
+                // logActivity(newPtwNo, 'was submitted by', loggedInUser.fullName, 'create');
             } catch (error) {
-                console.error("Error adding document: ", error);
-                alert("Failed to add PTW to Firebase.");
+                console.error("Error adding doc:", error);
+                alert("Failed to submit PTW.");
             }
         }
         window.submitNewPtw = submitNewPtw;
 
-
-        // --- CSV EXPORT / IMPORT HANDLING ---
-
-        function exportCSV() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            const filteredData = ptwData.filter(row => {
-                const matchesSearch = row.ptwNo.toLowerCase().includes(term) || row.location.toLowerCase().includes(term) || row.scope.toLowerCase().includes(term);
-                const matchesStatus = currentFilter === 'All' || row.ptwStatus === currentFilter;
-                return matchesSearch && matchesStatus;
-            });
-
-            const headers = ['PTW No.', 'Date', 'Requester', 'Scope of Work', 'Location', 'Critical', 'Status'];
-            const csvRows = [headers.join(',')];
-            
-            filteredData.forEach(row => {
-                const escapeCSV = (str) => `"${String(str).replace(/"/g, '""')}"`;
-                csvRows.push([
-                    row.ptwNo, escapeCSV(row.date), escapeCSV(row.requester), escapeCSV(row.scope), escapeCSV(row.location), row.critical ? 'Yes' : 'No', row.ptwStatus
-                ].join(','));
-            });
-
-            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url); a.setAttribute('download', 'fmptw_export.csv');
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        }
-        window.exportCSV = exportCSV;
-
-        function triggerImport() { document.getElementById('csvFileInput').click(); }
-        window.triggerImport = triggerImport;
-
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                pendingImportFile = file;
-                document.getElementById('importFileName').innerText = file.name;
-                const modal = document.getElementById('importModal');
-                const content = document.getElementById('importModalContent');
-                modal.classList.remove('hidden');
-                setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
-            }
-            event.target.value = '';
-        }
-        window.handleFileSelect = handleFileSelect;
-
-        function closeImportModal() {
-            const modal = document.getElementById('importModal');
-            const content = document.getElementById('importModalContent');
-            modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => { modal.classList.add('hidden'); pendingImportFile = null; }, 300);
-        }
-        window.closeImportModal = closeImportModal;
-
-        function parseCSV(text) {
-            const lines = text.split('\n').filter(line => line.trim() !== '');
-            if (lines.length <= 1) return []; 
-            
-            const splitRow = (row) => {
-                const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-                let inQuotes = false;
-                let currentVal = '';
-                const values = [];
-                for(let i=0; i<row.length; i++) {
-                    let char = row[i];
-                    if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) {
-                        values.push(currentVal.replace(/^"|"$/g, '').trim());
-                        currentVal = '';
-                    } else {
-                        currentVal += char;
-                    }
-                }
-                values.push(currentVal.replace(/^"|"$/g, '').trim());
-                return values;
-            };
-
-            const data = [];
-            for (let i = 1; i < lines.length; i++) {
-                const values = splitRow(lines[i]);
-                if (values.length >= 7) {
-                    data.push({
-                        ptwNo: values[0] || `IMP-${Date.now().toString().slice(-4)}`,
-                        date: values[1] || '',
-                        requester: values[2] || 'Imported User',
-                        scope: values[3] || 'Imported Scope',
-                        location: values[4] || 'Unknown',
-                        critical: values[5] === 'Yes',
-                        ptwStatus: values[6] || 'Pending Review',
-                        startTime: '08:00',
-                        endTime: '17:00',
-                        workOwner: 'Imported Owner',
-                        loto: 'No',
-                        bypass: 'No',
-                        jobProgress: '0%',
-                        reviewer: 'Imported Reviewer',
-                        approver: 'Imported Approver',
-                        createdAt: new Date().toISOString()
-                    });
-                }
-            }
-            return data;
-        }
-
-        async function confirmImport(mode) {
-            if(!pendingImportFile) return;
-
-            const fileName = pendingImportFile.name;
-            const fileToRead = pendingImportFile; 
-            closeImportModal();
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const text = e.target.result;
-                const parsedData = parseCSV(text);
-
-                if (parsedData.length === 0) {
-                    alert("No valid data found in CSV to import.");
-                    return;
-                }
-
-                if(isOfflineMode) { 
-                    if (mode === 'replace') {
-                        ptwData = [...parsedData];
-                    } else {
-                        parsedData.forEach(newItem => {
-                            const index = ptwData.findIndex(p => p.ptwNo === newItem.ptwNo);
-                            if (index !== -1) ptwData[index] = { ...ptwData[index], ...newItem };
-                            else ptwData.push(newItem);
-                        });
-                    }
-                    ptwData.sort((a, b) => b.ptwNo.localeCompare(a.ptwNo));
-                    logActivity('System', `database was ${mode === 'merge' ? 'merged' : 'replaced'} via CSV import by`, loggedInUser?.fullName || 'Admin', 'import');
-                    refreshActiveView();
-                    alert(`Database was ${mode === 'merge' ? 'merged with' : 'replaced by'} ${fileName} (Offline Mode).`);
-                    return;
-                }
-
-                try {
-                    const ptwsRef = collection(db, 'artifacts', appId, 'public', 'data', 'ptws');
-
-                    if (mode === 'replace') {
-                        const validPtws = ptwData.filter(p => p.id);
-                        const deletePromises = validPtws.map(ptw => 
-                            deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ptws', ptw.id))
-                        );
-                        await Promise.all(deletePromises);
-                        
-                        const addPromises = parsedData.map(item => addDoc(ptwsRef, item));
-                        await Promise.all(addPromises);
-                    } else {
-                        const mergePromises = parsedData.map(item => {
-                            const existingRecord = ptwData.find(p => p.ptwNo === item.ptwNo);
-                            if (existingRecord && existingRecord.id) {
-                                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'ptws', existingRecord.id);
-                                return updateDoc(docRef, item);
-                            } else {
-                                return addDoc(ptwsRef, item);
-                            }
-                        });
-                        await Promise.all(mergePromises);
-                    }
-
-                    logActivity('System', `database was ${mode === 'merge' ? 'merged' : 'replaced'} via CSV import by`, loggedInUser?.fullName || 'Admin', 'import');
-                    alert(`Database was ${mode === 'merge' ? 'merged with' : 'replaced by'} ${fileName}.`);
-                } catch (error) {
-                    console.error("Error during import:", error);
-                    alert("Failed to sync imported data to Firebase.");
-                }
-            };
-            reader.readAsText(fileToRead);
-        }
-        window.confirmImport = confirmImport;
-
-
-        // --- APP INITIALIZATION ---
-        
-        document.getElementById('searchInput').addEventListener('input', applyFilters);
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => { e.preventDefault(); switchView(e.currentTarget.dataset.target); });
-        });
-        window.addEventListener('resize', () => {
-            const panes = [document.getElementById('detailsPane'), document.getElementById('userDetailsPane')];
-            panes.forEach(pane => {
-                if(pane && window.innerWidth >= 1024 && pane.classList.contains('absolute')) {
-                    pane.classList.remove('absolute', 'inset-0', 'w-full');
-                }
-            });
-        });
-
+        // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            updateSortIcons();
-            initializeAppLogic(); // Boot up firebase connection & wait for login
+            initializeAppLogic();
         });
 
     </script>
