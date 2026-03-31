@@ -625,38 +625,64 @@
         }
 
         function renderLivePermits() {
-            const term = document.getElementById('searchLive').value.toLowerCase();
-            const todayDateString = new Date().toDateString();
+            const searchInput = document.getElementById('searchLive');
+            const term = searchInput ? searchInput.value.toLowerCase() : '';
+            const today = new Date();
+            const todayDateString = today.toDateString();
+            
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowDateString = tomorrow.toDateString();
             
             let livePtws = ptwData.filter(d => {
-                if (d.ptwStatus !== 'Approved' && d.ptwStatus !== 'Open') return false;
+                // Support both new split statuses and the old combined status for compatibility
+                const status = (d.ptwStatus || '').trim();
+                const isExecutable = status === 'Approved' || status === 'Open' || status === 'Approved (Open)';
+                if (!isExecutable) return false;
                 
-                // Parse date logic to strictly check the scheduled execution date
-                let pDate = new Date(); // fallback
+                // Robust date parsing: find DD/MM/YY pattern anywhere in the string
+                let pDate = null;
                 if (d.date) {
-                    const dateStr = d.date.split(',')[1]?.trim(); 
-                    if (dateStr) {
-                        const parts = dateStr.split('/');
-                        if (parts.length === 3) {
-                            pDate = new Date(2000 + parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
-                        }
+                    const match = d.date.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+                    if (match) {
+                        let day = parseInt(match[1], 10);
+                        let month = parseInt(match[2], 10) - 1;
+                        let year = parseInt(match[3], 10);
+                        if (year < 100) year += 2000;
+                        pDate = new Date(year, month, day);
                     }
                 }
                 
-                return pDate.toDateString() === todayDateString;
+                // If parsing failed, don't show it in Live (to avoid cluttering with wrong dates)
+                if (!pDate) return false;
+                
+                const pDateString = pDate.toDateString();
+                return pDateString === todayDateString || pDateString === tomorrowDateString;
             });
             
             if (term) {
                 livePtws = livePtws.filter(p => 
-                    p.ptwNo.toLowerCase().includes(term) || 
-                    p.location.toLowerCase().includes(term) || 
-                    p.scope.toLowerCase().includes(term)
+                    (p.ptwNo || '').toLowerCase().includes(term) || 
+                    (p.location || '').toLowerCase().includes(term) || 
+                    (p.scope || '').toLowerCase().includes(term)
                 );
             }
 
             const container = document.getElementById('livePermitList');
-            if (livePtws.length === 0) container.innerHTML = `<div class="text-center py-10 text-zinc-500"><i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 opacity-20"></i><p class="text-sm">No active permits today.</p></div>`;
-            else container.innerHTML = livePtws.map(createPtwCard).join('');
+            if (!container) return;
+
+            if (livePtws.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-zinc-600">
+                        <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800/50">
+                            <i data-lucide="calendar-days" class="w-8 h-8 opacity-20"></i>
+                        </div>
+                        <p class="text-sm font-medium">No permits scheduled for today or tomorrow</p>
+                        <p class="text-xs opacity-50 mt-1">Only Approved or Open permits appear here.</p>
+                    </div>`;
+            } else {
+                container.innerHTML = livePtws.map(createPtwCard).join('');
+            }
             
             lucide.createIcons();
         }
