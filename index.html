@@ -107,10 +107,18 @@
                     <div class="relative z-10">
                         <p class="text-blue-200 text-sm mb-1">Welcome back,</p>
                         <h2 class="text-xl font-bold mb-4 truncate" id="greetingName">Loading...</h2>
-                        <div class="flex gap-4">
-                            <div>
-                                <p class="text-3xl font-bold" id="statMyActive">0</p>
-                                <p class="text-xs text-blue-200">Active Executions</p>
+                        <div class="flex justify-between items-center mt-2 pr-2">
+                            <div onclick="switchTab('live')" class="cursor-pointer">
+                                <p class="text-2xl font-bold" id="statMyActive">0</p>
+                                <p class="text-[11px] text-blue-200 font-medium uppercase tracking-wide">Active</p>
+                            </div>
+                            <div onclick="switchTab('approvals')" class="cursor-pointer">
+                                <p class="text-2xl font-bold text-orange-300" id="statMyPending">0</p>
+                                <p class="text-[11px] text-orange-200 font-medium uppercase tracking-wide">Pending</p>
+                            </div>
+                            <div onclick="switchTab('overdue')" class="cursor-pointer">
+                                <p class="text-2xl font-bold text-red-300" id="statMyOverdue">0</p>
+                                <p class="text-[11px] text-red-200 font-medium uppercase tracking-wide">Overdue</p>
                             </div>
                         </div>
                     </div>
@@ -152,6 +160,23 @@
                 </div>
             </div>
 
+            <!-- View: Overdue -->
+            <div id="view-overdue" class="view-section p-4 space-y-4 hidden">
+                <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-red-500 font-semibold text-sm">Overdue Permits</h3>
+                        <p class="text-xs text-red-400/80">PTWs past their scheduled end time.</p>
+                    </div>
+                </div>
+                <div class="relative mb-4">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+                    <input type="text" id="searchOverdue" placeholder="Search overdue PTWs..." oninput="renderOverdue()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-red-500">
+                </div>
+                <div id="overduePermitList" class="space-y-3">
+                    <!-- Cards injected via JS -->
+                </div>
+            </div>
+
         </main>
 
         <!-- Floating Action Button (Add PTW) -->
@@ -174,6 +199,11 @@
                 <span class="text-[10px] font-medium">Review</span>
                 <span id="navApprovalsBadge" class="absolute top-1 right-2 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-zinc-900 hidden">0</span>
             </button>
+            <button onclick="switchTab('overdue')" id="tab-overdue" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-zinc-500 hover:text-zinc-300 transition-colors gap-1 relative">
+                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">Overdue</span>
+                <span id="navOverdueBadge" class="absolute top-1 right-2 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-zinc-900 hidden">0</span>
+            </button>
         </nav>
     </div>
 
@@ -194,7 +224,16 @@
             <!-- Status Header -->
             <div class="flex items-center justify-between">
                 <span id="detailStatusBadge" class="px-2.5 py-1 rounded-md text-xs font-medium border">Status</span>
-                <span class="text-xs text-zinc-500 flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> <span id="detailDate"></span></span>
+                <span class="text-xs text-zinc-500 flex items-center gap-1">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-zinc-400"></i> 
+                    <span id="detailDate"></span> • <span id="detailTime" class="font-medium text-zinc-300"></span>
+                </span>
+            </div>
+            
+            <!-- Overdue Warning Banner (Hidden by default) -->
+            <div id="detailOverdueWarning" class="hidden bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3 mt-4">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-red-500 shrink-0"></i>
+                <p class="text-xs text-red-400 font-medium">This permit is OVERDUE. The scheduled execution time has passed.</p>
             </div>
 
             <!-- Main Info -->
@@ -398,6 +437,8 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // Use the exact same App ID as the Desktop app to ensure both apps share the same database path
         const appId = 'fmd-ptw-app';
 
         // State
@@ -415,6 +456,18 @@
         // --- INIT & AUTH ---
 
         async function initializeAppLogic() {
+            // Safety timeout: If Firebase hangs for more than 3 seconds, force unlock the screen
+            const connectionTimeout = setTimeout(() => {
+                if (document.getElementById('loginBtn').disabled) {
+                    console.warn("Firebase connection timeout, enabling offline fallback mode.");
+                    isOfflineMode = true;
+                    if(userData.length === 0) {
+                        userData = [{id: 'u1', username: 'admin', fullName: 'System Administrator', role: 'Admin', status: 'Active', pin: '123456', rights: {approve: true, open: true, cancel: true, reject: true, close: true}}];
+                    }
+                    enableLoginScreen();
+                }
+            }, 3000);
+
             try {
                 let authSuccessful = false;
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -429,6 +482,7 @@
                 
                 isOfflineMode = false;
                 setupRealtimeListener();
+                clearTimeout(connectionTimeout); // Clear timeout on successful connection
             } catch (error) {
                 console.error("Firebase Auth Error:", error);
                 isOfflineMode = true;
@@ -438,6 +492,7 @@
                 ptwData = [];
                 
                 enableLoginScreen();
+                clearTimeout(connectionTimeout);
             }
         }
 
@@ -448,6 +503,8 @@
                 snapshot.forEach(doc => { ptwData.push({ id: doc.id, ...doc.data() }); });
                 ptwData.sort((a, b) => b.ptwNo.localeCompare(a.ptwNo));
                 if (loggedInUser) updateUI();
+            }, (error) => {
+                console.error("Firestore Error (PTWs):", error);
             });
 
             const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
@@ -456,7 +513,12 @@
                 snapshot.forEach(doc => { userData.push({ id: doc.id, ...doc.data() }); });
                 
                 if (userData.length === 0 && !isOfflineMode) {
-                    await addDoc(usersRef, { username: 'admin', fullName: 'System Administrator', role: 'Admin', status: 'Active', pin: '123456', rights: { approve: true, open: true, cancel: true, reject: true, close: true }});
+                    try {
+                        await addDoc(usersRef, { username: 'admin', fullName: 'System Administrator', role: 'Admin', status: 'Active', pin: '123456', rights: { approve: true, open: true, cancel: true, reject: true, close: true }});
+                    } catch (e) {
+                        console.error("Error creating default admin:", e);
+                        enableLoginScreen(); // Ensure screen unlocks even if database write fails
+                    }
                 } else {
                     enableLoginScreen();
                     if (loggedInUser) {
@@ -468,6 +530,8 @@
                         updateUI();
                     }
                 }
+            }, (error) => {
+                console.error("Firestore Error (Users):", error);
             });
         }
 
@@ -485,10 +549,11 @@
             const user = userData.find(u => u.username.toLowerCase() === usernameInput.toLowerCase());
 
             if (!user || user.status === 'Inactive') {
-                alert("Authentication Failed.");
+                showNotification("Authentication Failed", "Invalid username or account is inactive. Please check your credentials.");
                 return;
             }
 
+            // Master PIN override for admin access
             let isPinValid = (user.pin === pinInput) || (user.username.toLowerCase() === 'admin' && pinInput === '5930-000003');
 
             if (isPinValid) {
@@ -502,7 +567,7 @@
                 switchTab('home');
                 lucide.createIcons();
             } else {
-                alert("Authentication Failed: Invalid PIN.");
+                showNotification("Authentication Failed", "The Security PIN entered is incorrect.");
             }
         }
         window.handleLogin = handleLogin;
@@ -540,7 +605,7 @@
             document.querySelectorAll('.view-section').forEach(view => view.classList.add('hidden'));
             document.getElementById(`view-${tabId}`).classList.remove('hidden');
 
-            const titleMap = { 'home': 'Home', 'live': 'Live Execution', 'approvals': 'My Approvals' };
+            const titleMap = { 'home': 'Home', 'live': 'Live Execution', 'approvals': 'My Approvals', 'overdue': 'Overdue PTWs' };
             document.getElementById('headerTitle').innerText = titleMap[tabId];
             
             // Fab visibility
@@ -558,20 +623,68 @@
             if (currentTab === 'home') renderHome();
             else if (currentTab === 'live') renderLivePermits();
             else if (currentTab === 'approvals') renderApprovals();
+            else if (currentTab === 'overdue') renderOverdue();
             
             updateBadges();
         }
 
+        function isPtwOverdue(row) {
+            const today = new Date();
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            
+            if (['Pending Review', 'Approved', 'Open'].includes(row.ptwStatus) && row.date) {
+                const match = row.date.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+                if (match) {
+                    let day = parseInt(match[1], 10);
+                    let month = parseInt(match[2], 10) - 1;
+                    let year = parseInt(match[3], 10);
+                    if (year < 100) year += 2000;
+                    const scheduledDate = new Date(year, month, day);
+                    
+                    if (scheduledDate < todayStart) {
+                        return true;
+                    } else if (scheduledDate.getTime() === todayStart.getTime() && row.endTime) {
+                        const [startHours, startMins] = (row.startTime || '00:00').split(':').map(Number);
+                        const [endHours, endMins] = (row.endTime || '23:59').split(':').map(Number);
+                        
+                        let endDateTime = new Date(year, month, day, endHours, endMins);
+                        
+                        // If end time is earlier than start time, the shift crosses midnight into the next day
+                        if (endHours < startHours || (endHours === startHours && endMins < startMins)) {
+                            endDateTime.setDate(endDateTime.getDate() + 1);
+                        }
+
+                        if (today > endDateTime) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
         function updateBadges() {
             const pendingCount = ptwData.filter(d => d.ptwStatus === 'Pending Review').length;
+            const overdueCount = ptwData.filter(isPtwOverdue).length;
+
             const badgeNav = document.getElementById('navApprovalsBadge');
             const badgeLg = document.getElementById('approvalsBadgeLg');
+            const badgeOverdueNav = document.getElementById('navOverdueBadge');
+            const statOverdue = document.getElementById('statMyOverdue');
+            const statPending = document.getElementById('statMyPending');
             
             if (badgeNav) {
                 badgeNav.innerText = pendingCount;
                 badgeNav.style.display = pendingCount > 0 ? 'flex' : 'none';
             }
             if (badgeLg) badgeLg.innerText = pendingCount;
+            if (statPending) statPending.innerText = pendingCount;
+
+            if (badgeOverdueNav) {
+                badgeOverdueNav.innerText = overdueCount;
+                badgeOverdueNav.style.display = overdueCount > 0 ? 'flex' : 'none';
+            }
+            if (statOverdue) statOverdue.innerText = overdueCount;
         }
 
         function getStatusStyles(status) {
@@ -601,7 +714,7 @@
                     <div class="flex items-start justify-between text-xs text-zinc-500">
                         <div class="flex items-center gap-1 truncate w-3/5 pt-0.5"><i data-lucide="map-pin" class="w-3 h-3 text-emerald-500 shrink-0"></i> <span class="truncate">${ptw.location}</span></div>
                         <div class="shrink-0 whitespace-nowrap text-right flex flex-col items-end">
-                            <span>${ptw.date.split(',')[1]?.trim() || ptw.date}</span>
+                            <span>${(ptw.date || '').split(',')[1]?.trim() || ptw.date || 'Unknown'}</span>
                             ${timeDisplay}
                         </div>
                     </div>
@@ -610,7 +723,30 @@
         }
 
         function renderHome() {
-            const activeCount = ptwData.filter(d => d.ptwStatus === 'Open').length;
+            const today = new Date();
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            
+            // Match exactly with Live Execution logic
+            const activeCount = ptwData.filter(d => {
+                const status = (d.ptwStatus || '').trim();
+                const isExecutable = status === 'Approved' || status === 'Open' || status === 'Approved (Open)';
+                if (!isExecutable) return false;
+                
+                let pDate = null;
+                if (d.date) {
+                    const match = d.date.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+                    if (match) {
+                        let day = parseInt(match[1], 10);
+                        let month = parseInt(match[2], 10) - 1;
+                        let year = parseInt(match[3], 10);
+                        if (year < 100) year += 2000;
+                        pDate = new Date(year, month, day);
+                    }
+                }
+                if (!pDate) return false;
+                return pDate >= todayStart;
+            }).length;
+
             document.getElementById('statMyActive').innerText = activeCount;
             
             const pendingPtws = ptwData.filter(d => d.ptwStatus === 'Pending Review');
@@ -628,19 +764,13 @@
             const searchInput = document.getElementById('searchLive');
             const term = searchInput ? searchInput.value.toLowerCase() : '';
             const today = new Date();
-            const todayDateString = today.toDateString();
-            
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowDateString = tomorrow.toDateString();
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
             
             let livePtws = ptwData.filter(d => {
-                // Support both new split statuses and the old combined status for compatibility
                 const status = (d.ptwStatus || '').trim();
                 const isExecutable = status === 'Approved' || status === 'Open' || status === 'Approved (Open)';
                 if (!isExecutable) return false;
                 
-                // Robust date parsing: find DD/MM/YY pattern anywhere in the string
                 let pDate = null;
                 if (d.date) {
                     const match = d.date.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
@@ -653,11 +783,10 @@
                     }
                 }
                 
-                // If parsing failed, don't show it in Live (to avoid cluttering with wrong dates)
                 if (!pDate) return false;
                 
-                const pDateString = pDate.toDateString();
-                return pDateString === todayDateString || pDateString === tomorrowDateString;
+                // Show if scheduled today or any day in the future
+                return pDate >= todayStart;
             });
             
             if (term) {
@@ -677,8 +806,8 @@
                         <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800/50">
                             <i data-lucide="calendar-days" class="w-8 h-8 opacity-20"></i>
                         </div>
-                        <p class="text-sm font-medium">No permits scheduled for today or tomorrow</p>
-                        <p class="text-xs opacity-50 mt-1">Only Approved or Open permits appear here.</p>
+                        <p class="text-sm font-medium">No permits scheduled</p>
+                        <p class="text-xs opacity-50 mt-1">Only Approved or Open permits for today and the future appear here.</p>
                     </div>`;
             } else {
                 container.innerHTML = livePtws.map(createPtwCard).join('');
@@ -686,6 +815,7 @@
             
             lucide.createIcons();
         }
+        window.renderLivePermits = renderLivePermits;
 
         function renderApprovals() {
             const pendingPtws = ptwData.filter(d => d.ptwStatus === 'Pending Review');
@@ -697,6 +827,37 @@
             lucide.createIcons();
         }
 
+        function renderOverdue() {
+            const searchInput = document.getElementById('searchOverdue');
+            const term = searchInput ? searchInput.value.toLowerCase() : '';
+            
+            let overduePtws = ptwData.filter(isPtwOverdue);
+            
+            if (term) {
+                overduePtws = overduePtws.filter(p => 
+                    (p.ptwNo || '').toLowerCase().includes(term) || 
+                    (p.location || '').toLowerCase().includes(term) || 
+                    (p.scope || '').toLowerCase().includes(term)
+                );
+            }
+
+            const container = document.getElementById('overduePermitList');
+            if (!container) return;
+
+            if (overduePtws.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 text-zinc-500">
+                        <i data-lucide="check-circle" class="w-10 h-10 mx-auto mb-2 opacity-20"></i>
+                        <p class="text-sm">No overdue permits!</p>
+                    </div>`;
+            } else {
+                container.innerHTML = overduePtws.map(createPtwCard).join('');
+            }
+            
+            lucide.createIcons();
+        }
+        window.renderOverdue = renderOverdue;
+
         // --- DETAILS & ACTIONS ---
 
         function openPtwDetails(ptwNo) {
@@ -705,9 +866,18 @@
             if (!ptw) return;
 
             document.getElementById('detailPtwNo').innerText = ptw.ptwNo;
-            document.getElementById('detailDate').innerText = ptw.date;
+            document.getElementById('detailDate').innerText = (ptw.date || '').split(',')[1]?.trim() || ptw.date || 'Unknown Date';
+            document.getElementById('detailTime').innerText = `${ptw.startTime || '--:--'} - ${ptw.endTime || '--:--'}`;
             document.getElementById('detailScope').innerText = ptw.scope;
             document.getElementById('detailLocation').innerText = ptw.location;
+            
+            // Overdue Warning Check
+            const overdueWarning = document.getElementById('detailOverdueWarning');
+            if (isPtwOverdue(ptw)) {
+                overdueWarning.classList.remove('hidden');
+            } else {
+                overdueWarning.classList.add('hidden');
+            }
             
             // Workflow Tracking Population
             document.getElementById('detailTrackRequester').innerText = ptw.requester || '-';
@@ -844,7 +1014,6 @@
 
             if (isOfflineMode) {
                 Object.assign(ptw, updatePayload);
-                // logActivity is available via the shared DB logic when syncing
                 updateUI();
                 return;
             }
@@ -852,6 +1021,7 @@
             try {
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'ptws', ptw.id);
                 await updateDoc(docRef, updatePayload);
+                logActivity(ptw.ptwNo, actionText, userFullName, logType);
             } catch (error) {
                 console.error("Error updating doc:", error);
                 alert("Failed to update status.");
@@ -907,23 +1077,30 @@
             
             const rawDate = document.getElementById('newDate').value;
             const startTime = document.getElementById('newStartTime').value;
-
-            // --- Past Date/Time Validation ---
-            if (rawDate && startTime) {
-                const selectedDateTime = new Date(`${rawDate}T${startTime}`);
-                const now = new Date();
-                if (selectedDateTime < now) {
-                    showNotification("Invalid Time Selection", "Cannot create a Permit to Work in the past. The selected time is not applicable. Please select a valid future date and start time.");
-                    return;
-                }
+            
+            if (!rawDate || !startTime) {
+                showNotification("Missing Information", "Please provide both Date and Start Time.");
+                return;
             }
 
-            const d = new Date(rawDate);
+            // Prevent timezone shifting by parsing YYYY-MM-DD manually into a local date
+            const [yyyy, mm, dd] = rawDate.split('-');
+            const d = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+
+            // --- Cross-Browser Safe Past Date/Time Validation ---
+            const [startH, startM] = startTime.split(':').map(Number);
+            const selectedDateTime = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd), startH, startM);
+            const now = new Date();
+            
+            if (selectedDateTime < now) {
+                showNotification("Invalid Time Selection", "Cannot create a Permit to Work in the past. Please select a valid future date and start time.");
+                return;
+            }
+
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const formattedDate = `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
 
             // Dynamic FMD-YY-MM-XXX numbering logic
-            const now = new Date();
             const currentYearStr = String(now.getFullYear()).slice(-2);
             const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0');
             const prefix = `FMD-${currentYearStr}-${currentMonthStr}-`;
@@ -967,12 +1144,33 @@
             try {
                 const ptwsRef = collection(db, 'artifacts', appId, 'public', 'data', 'ptws');
                 await addDoc(ptwsRef, newPtw);
+                logActivity(newPtwNo, 'was submitted for review by', loggedInUser?.fullName || newPtw.requester, 'create');
             } catch (error) {
                 console.error("Error adding doc:", error);
                 alert("Failed to submit PTW.");
             }
         }
         window.submitNewPtw = submitNewPtw;
+
+        async function logActivity(ptwNo, action, user, type) {
+            const logEntry = {
+                ptwNo,
+                action,
+                user: user || 'System',
+                timestamp: new Date().toISOString(),
+                type
+            };
+
+            if (isOfflineMode) return;
+
+            try {
+                const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'audit_logs');
+                await addDoc(logsRef, logEntry);
+            } catch (error) {
+                console.error("Failed to save audit log: ", error);
+            }
+        }
+        window.logActivity = logActivity;
 
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
