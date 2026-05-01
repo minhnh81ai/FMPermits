@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FMPermits Mobile</title>
+    <title>FMPermits Mobile V2</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -65,7 +65,7 @@
                 <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-4">
                     <i data-lucide="shield-check" class="w-8 h-8 text-blue-500"></i>
                 </div>
-                <h1 class="text-2xl font-bold text-zinc-100 tracking-tight">FMPermits</h1>
+                <h1 class="text-2xl font-bold text-zinc-100 tracking-tight">FMPermits V2</h1>
                 <p class="text-sm text-zinc-500 mt-1">Field Operator Portal</p>
             </div>
             <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
@@ -101,14 +101,14 @@
         <!-- View Container -->
         <main class="flex-1 overflow-y-auto pb-24 hide-scrollbar relative bg-zinc-950" id="mainContentArea">
             
-            <!-- View: Home / Dashboard -->
+            <!-- View: Home / Dashboard (Merged with Live Execution) -->
             <div id="view-home" class="view-section p-4 space-y-4">
                 <div class="bg-blue-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden">
                     <div class="relative z-10">
                         <p class="text-blue-200 text-sm mb-1">Welcome back,</p>
                         <h2 class="text-xl font-bold mb-4 truncate" id="greetingName">Loading...</h2>
                         <div class="flex justify-between items-center mt-2 pr-2">
-                            <div onclick="switchTab('live')" class="cursor-pointer">
+                            <div>
                                 <p class="text-2xl font-bold" id="statMyActive">0</p>
                                 <p class="text-[11px] text-blue-200 font-medium uppercase tracking-wide">Active</p>
                             </div>
@@ -126,22 +126,37 @@
                 </div>
 
                 <div class="flex items-center justify-between mt-6 mb-2">
-                    <h3 class="font-semibold text-zinc-200">Pending Review Permits</h3>
-                    <span class="text-xs text-zinc-500" id="recentPermitsCount">0 Total</span>
+                    <h3 class="font-semibold text-zinc-200">Active Executions</h3>
                 </div>
                 
-                <div id="homePermitList" class="space-y-3">
+                <div class="relative mb-4">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+                    <input type="text" id="searchHome" placeholder="Search active PTWs or Scope..." oninput="renderHome()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-blue-500">
+                </div>
+                
+                <div id="homePermitList" class="space-y-3 pb-8">
                     <!-- Cards injected via JS -->
                 </div>
             </div>
 
-            <!-- View: Live Execution -->
-            <div id="view-live" class="view-section p-4 space-y-4 hidden">
-                <div class="relative mb-4">
-                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
-                    <input type="text" id="searchLive" placeholder="Search active PTWs or Scope..." oninput="renderLivePermits()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-blue-500">
+            <!-- View: All Permits -->
+            <div id="view-all" class="view-section p-4 space-y-4 hidden">
+                <div class="flex gap-2 mb-2">
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+                        <input type="text" id="searchAll" placeholder="Search PTWs..." oninput="renderAllPermits()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <select id="filterAllStatus" onchange="renderAllPermits()" class="bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 px-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 [color-scheme:dark] shrink-0 w-32">
+                        <option value="All">All Status</option>
+                        <option value="Pending Review">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Open">Open</option>
+                        <option value="Closed">Closed</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
                 </div>
-                <div id="livePermitList" class="space-y-3">
+                <div id="allPermitList" class="space-y-3 pb-8">
                     <!-- Cards injected via JS -->
                 </div>
             </div>
@@ -190,9 +205,9 @@
                 <i data-lucide="home" class="w-5 h-5"></i>
                 <span class="text-[10px] font-medium">Home</span>
             </button>
-            <button onclick="switchTab('live')" id="tab-live" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-zinc-500 hover:text-zinc-300 transition-colors gap-1">
-                <i data-lucide="activity" class="w-5 h-5"></i>
-                <span class="text-[10px] font-medium">Live</span>
+            <button onclick="switchTab('all')" id="tab-all" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-zinc-500 hover:text-zinc-300 transition-colors gap-1 hidden">
+                <i data-lucide="layers" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium">All</span>
             </button>
             <button onclick="switchTab('approvals')" id="tab-approvals" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-zinc-500 hover:text-zinc-300 transition-colors gap-1 relative hidden">
                 <i data-lucide="inbox" class="w-5 h-5"></i>
@@ -368,10 +383,6 @@
                 <!-- Personnel -->
                 <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
                     <div>
-                        <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Requester</label>
-                        <input type="text" id="newRequester" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
-                    </div>
-                    <div>
                         <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Work Owner</label>
                         <input type="text" id="newWorkOwner" required placeholder="Name..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-700">
                     </div>
@@ -421,25 +432,22 @@
     </script>
     <script type="module">
         import { initializeApp } from "firebase/app";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "firebase/auth";
-        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc } from "firebase/firestore";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "firebase/auth";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, runTransaction } from "firebase/firestore";
 
-        // Using exactly the same configuration as the Desktop app
+        // V2 Project Configuration
         const firebaseConfig = {
-          apiKey: "AIzaSyB4ma94d-P4FOSVxWiu8hMTYUzcwuLsDgc",
-          authDomain: "fmd-ptw-management.firebaseapp.com",
-          projectId: "fmd-ptw-management",
-          storageBucket: "fmd-ptw-management.firebasestorage.app",
-          messagingSenderId: "1026315637531",
-          appId: "1:1026315637531:web:24343f48e700de68e339be"
+            apiKey: "AIzaSyA6UY-oZSJEcOViduZhE1VZZvXUZrQUxYg",
+            authDomain: "fm-permits-v2-ab0c6.firebaseapp.com",
+            projectId: "fm-permits-v2-ab0c6",
+            storageBucket: "fm-permits-v2-ab0c6.firebasestorage.app",
+            messagingSenderId: "423259377160",
+            appId: "1:423259377160:web:6a3664054455c8503c8bbd"
         };
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        // Use the exact same App ID as the Desktop app to ensure both apps share the same database path
-        const appId = 'fmd-ptw-app';
 
         // State
         let ptwData = [];
@@ -449,25 +457,27 @@
         let currentTab = 'home';
         let selectedPtwId = null;
         let pendingAction = '';
+        let listenersSetup = false;
 
         let unsubscribePtws = null;
         let unsubscribeUsers = null;
 
+        // --- HELPER FUNCTIONS ---
+        function formatEpochToDate(epoch) {
+            if(!epoch) return "-";
+            const d = new Date(epoch);
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            return `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
+        }
+
+        function formatEpochToTime(epoch) {
+            if(!epoch) return "-";
+            return new Date(epoch).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+        }
+
         // --- INIT & AUTH ---
 
         async function initializeAppLogic() {
-            // Safety timeout: If Firebase hangs for more than 3 seconds, force unlock the screen
-            const connectionTimeout = setTimeout(() => {
-                if (document.getElementById('loginBtn').disabled) {
-                    console.warn("Firebase connection timeout, enabling offline fallback mode.");
-                    isOfflineMode = true;
-                    if(userData.length === 0) {
-                        userData = [{id: 'u1', username: 'admin', fullName: 'System Administrator', role: 'Admin', status: 'Active', pin: '123456', rights: {approve: true, open: true, cancel: true, reject: true, close: true}}];
-                    }
-                    enableLoginScreen();
-                }
-            }, 3000);
-
             try {
                 let authSuccessful = false;
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -480,9 +490,13 @@
                 }
                 if (!authSuccessful) await signInAnonymously(auth);
                 
-                isOfflineMode = false;
-                setupRealtimeListener();
-                clearTimeout(connectionTimeout); // Clear timeout on successful connection
+                onAuthStateChanged(auth, (user) => {
+                    if (user && !listenersSetup) {
+                        listenersSetup = true;
+                        isOfflineMode = false;
+                        setupRealtimeListener();
+                    }
+                });
             } catch (error) {
                 console.error("Firebase Auth Error:", error);
                 isOfflineMode = true;
@@ -492,22 +506,24 @@
                 ptwData = [];
                 
                 enableLoginScreen();
-                clearTimeout(connectionTimeout);
             }
         }
 
         function setupRealtimeListener() {
-            const ptwsRef = collection(db, 'artifacts', appId, 'public', 'data', 'ptws');
+            if (!auth.currentUser) return;
+
+            // V2: Root Collections
+            const ptwsRef = collection(db, 'ptws');
             unsubscribePtws = onSnapshot(ptwsRef, (snapshot) => {
                 ptwData = [];
                 snapshot.forEach(doc => { ptwData.push({ id: doc.id, ...doc.data() }); });
                 ptwData.sort((a, b) => b.ptwNo.localeCompare(a.ptwNo));
                 if (loggedInUser) updateUI();
             }, (error) => {
-                console.error("Firestore Error (PTWs):", error);
+                console.error("PTW Error:", error);
             });
 
-            const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+            const usersRef = collection(db, 'users');
             unsubscribeUsers = onSnapshot(usersRef, async (snapshot) => {
                 userData = [];
                 snapshot.forEach(doc => { userData.push({ id: doc.id, ...doc.data() }); });
@@ -522,7 +538,7 @@
                 } else {
                     enableLoginScreen();
                     if (loggedInUser) {
-                        const updatedSelf = userData.find(u => u.username === loggedInUser.username);
+                        const updatedSelf = userData.find(u => u.id === loggedInUser.id);
                         if (updatedSelf) {
                             loggedInUser = updatedSelf;
                             applyRBAC();
@@ -531,7 +547,7 @@
                     }
                 }
             }, (error) => {
-                console.error("Firestore Error (Users):", error);
+                console.error("Users Error:", error);
             });
         }
 
@@ -584,11 +600,21 @@
 
         function applyRBAC() {
             const approvalsTab = document.getElementById('tab-approvals');
+            const allTab = document.getElementById('tab-all');
+            
             if (loggedInUser?.rights?.approve) {
                 approvalsTab.classList.remove('hidden');
             } else {
                 approvalsTab.classList.add('hidden');
                 if (currentTab === 'approvals') switchTab('home');
+            }
+            
+            // Show "All" tab for Admin, Reviewer, Approver, or custom roles that contain 'approve' rights
+            if (loggedInUser?.role === 'Admin' || loggedInUser?.role === 'Reviewer' || loggedInUser?.role === 'Approver' || loggedInUser?.rights?.approve) {
+                allTab.classList.remove('hidden');
+            } else {
+                allTab.classList.add('hidden');
+                if (currentTab === 'all') switchTab('home');
             }
         }
 
@@ -605,7 +631,7 @@
             document.querySelectorAll('.view-section').forEach(view => view.classList.add('hidden'));
             document.getElementById(`view-${tabId}`).classList.remove('hidden');
 
-            const titleMap = { 'home': 'Home', 'live': 'Live Execution', 'approvals': 'My Approvals', 'overdue': 'Overdue PTWs' };
+            const titleMap = { 'home': 'Home', 'all': 'All Permits', 'approvals': 'My Approvals', 'overdue': 'Overdue PTWs' };
             document.getElementById('headerTitle').innerText = titleMap[tabId];
             
             // Fab visibility
@@ -621,7 +647,7 @@
             if (!loggedInUser) return;
             
             if (currentTab === 'home') renderHome();
-            else if (currentTab === 'live') renderLivePermits();
+            else if (currentTab === 'all') renderAllPermits();
             else if (currentTab === 'approvals') renderApprovals();
             else if (currentTab === 'overdue') renderOverdue();
             
@@ -629,36 +655,9 @@
         }
 
         function isPtwOverdue(row) {
-            const today = new Date();
-            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            
-            if (['Pending Review', 'Approved', 'Open'].includes(row.ptwStatus) && row.date) {
-                const match = row.date.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-                if (match) {
-                    let day = parseInt(match[1], 10);
-                    let month = parseInt(match[2], 10) - 1;
-                    let year = parseInt(match[3], 10);
-                    if (year < 100) year += 2000;
-                    const scheduledDate = new Date(year, month, day);
-                    
-                    if (scheduledDate < todayStart) {
-                        return true;
-                    } else if (scheduledDate.getTime() === todayStart.getTime() && row.endTime) {
-                        const [startHours, startMins] = (row.startTime || '00:00').split(':').map(Number);
-                        const [endHours, endMins] = (row.endTime || '23:59').split(':').map(Number);
-                        
-                        let endDateTime = new Date(year, month, day, endHours, endMins);
-                        
-                        // If end time is earlier than start time, the shift crosses midnight into the next day
-                        if (endHours < startHours || (endHours === startHours && endMins < startMins)) {
-                            endDateTime.setDate(endDateTime.getDate() + 1);
-                        }
-
-                        if (today > endDateTime) {
-                            return true;
-                        }
-                    }
-                }
+            const endTime = row.scheduledEndTimestamp || row.scheduledStartTimestamp;
+            if (['Pending Review', 'Approved', 'Open'].includes(row.ptwStatus) && endTime && endTime < Date.now()) {
+                return true;
             }
             return false;
         }
@@ -702,7 +701,7 @@
         function createPtwCard(ptw) {
             const statusStyle = getStatusStyles(ptw.ptwStatus);
             const critIcon = ptw.critical ? `<i data-lucide="alert-triangle" class="w-3 h-3 text-red-500 inline ml-1"></i>` : '';
-            const timeDisplay = (ptw.startTime && ptw.endTime) ? `<div class="flex items-center gap-1 mt-1 text-[10px] text-blue-400/90"><i data-lucide="clock" class="w-3 h-3"></i> ${ptw.startTime} - ${ptw.endTime}</div>` : '';
+            const timeDisplay = (ptw.scheduledStartTimestamp && ptw.scheduledEndTimestamp) ? `<div class="flex items-center gap-1 mt-1 text-[10px] text-blue-400/90"><i data-lucide="clock" class="w-3 h-3"></i> ${formatEpochToTime(ptw.scheduledStartTimestamp)} - ${formatEpochToTime(ptw.scheduledEndTimestamp)}</div>` : '';
             
             return `
                 <div onclick="openPtwDetails('${ptw.ptwNo}')" class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 active:bg-zinc-800/80 transition-colors">
@@ -714,7 +713,7 @@
                     <div class="flex items-start justify-between text-xs text-zinc-500">
                         <div class="flex items-center gap-1 truncate w-3/5 pt-0.5"><i data-lucide="map-pin" class="w-3 h-3 text-emerald-500 shrink-0"></i> <span class="truncate">${ptw.location}</span></div>
                         <div class="shrink-0 whitespace-nowrap text-right flex flex-col items-end">
-                            <span>${(ptw.date || '').split(',')[1]?.trim() || ptw.date || 'Unknown'}</span>
+                            <span>${formatEpochToDate(ptw.scheduledStartTimestamp)}</span>
                             ${timeDisplay}
                         </div>
                     </div>
@@ -723,68 +722,103 @@
         }
 
         function renderHome() {
+            const searchInput = document.getElementById('searchHome');
+            const term = searchInput ? searchInput.value.toLowerCase() : '';
             const today = new Date();
-            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
             
-            // Match exactly with Live Execution logic
-            const activeCount = ptwData.filter(d => {
+            let activeCount = 0;
+            let livePtws = [];
+
+            ptwData.forEach(d => {
                 const status = (d.ptwStatus || '').trim();
-                const isExecutable = status === 'Approved' || status === 'Open' || status === 'Approved (Open)';
-                if (!isExecutable) return false;
+                const isExecutable = status === 'Approved' || status === 'Open';
+                if (!isExecutable) return;
                 
-                let pDate = null;
-                if (d.date) {
-                    const match = d.date.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-                    if (match) {
-                        let day = parseInt(match[1], 10);
-                        let month = parseInt(match[2], 10) - 1;
-                        let year = parseInt(match[3], 10);
-                        if (year < 100) year += 2000;
-                        pDate = new Date(year, month, day);
-                    }
+                const pDate = d.scheduledStartTimestamp || d.createdAt || 0;
+                // Check if scheduled today or any day in the future
+                if (pDate >= todayStart) {
+                    activeCount++;
+                    livePtws.push(d);
                 }
-                if (!pDate) return false;
-                return pDate >= todayStart;
-            }).length;
+            });
 
             document.getElementById('statMyActive').innerText = activeCount;
             
-            const pendingPtws = ptwData.filter(d => d.ptwStatus === 'Pending Review');
-            const displayPtws = pendingPtws.slice(0, 5); // Just show top 5 on home
-            document.getElementById('recentPermitsCount').innerText = `${pendingPtws.length} Total`;
+            if (term) {
+                livePtws = livePtws.filter(p => 
+                    (p.ptwNo || '').toLowerCase().includes(term) || 
+                    (p.location || '').toLowerCase().includes(term) || 
+                    (p.scope || '').toLowerCase().includes(term)
+                );
+            }
             
             const container = document.getElementById('homePermitList');
-            if (displayPtws.length === 0) container.innerHTML = `<p class="text-center text-zinc-500 text-sm py-4">No pending permits found.</p>`;
-            else container.innerHTML = displayPtws.map(createPtwCard).join('');
+            if (!container) return;
+
+            if (livePtws.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-zinc-600">
+                        <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800/50">
+                            <i data-lucide="calendar-days" class="w-8 h-8 opacity-20"></i>
+                        </div>
+                        <p class="text-sm font-medium">No active permits</p>
+                        <p class="text-xs opacity-50 mt-1">Only Approved or Open permits for today and the future appear here.</p>
+                    </div>`;
+            } else {
+                container.innerHTML = livePtws.map(createPtwCard).join('');
+            }
             
             lucide.createIcons();
         }
+        window.renderHome = renderHome;
+
+        function renderAllPermits() {
+            const searchInput = document.getElementById('searchAll');
+            const term = searchInput ? searchInput.value.toLowerCase() : '';
+            const filterDropdown = document.getElementById('filterAllStatus');
+            const statusFilter = filterDropdown ? filterDropdown.value : 'All';
+            
+            let filteredPtws = ptwData.filter(p => {
+                const matchesSearch = (p.ptwNo || '').toLowerCase().includes(term) || 
+                                      (p.location || '').toLowerCase().includes(term) || 
+                                      (p.scope || '').toLowerCase().includes(term);
+                const matchesStatus = statusFilter === 'All' || p.ptwStatus === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+
+            const container = document.getElementById('allPermitList');
+            if (!container) return;
+
+            if (filteredPtws.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-zinc-600">
+                        <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800/50">
+                            <i data-lucide="layers" class="w-8 h-8 opacity-20"></i>
+                        </div>
+                        <p class="text-sm font-medium">No permits found</p>
+                        <p class="text-xs opacity-50 mt-1">Try adjusting your search or filters.</p>
+                    </div>`;
+            } else {
+                container.innerHTML = filteredPtws.map(createPtwCard).join('');
+            }
+            
+            lucide.createIcons();
+        }
+        window.renderAllPermits = renderAllPermits;
 
         function renderLivePermits() {
             const searchInput = document.getElementById('searchLive');
             const term = searchInput ? searchInput.value.toLowerCase() : '';
             const today = new Date();
-            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
             
             let livePtws = ptwData.filter(d => {
                 const status = (d.ptwStatus || '').trim();
-                const isExecutable = status === 'Approved' || status === 'Open' || status === 'Approved (Open)';
+                const isExecutable = status === 'Approved' || status === 'Open';
                 if (!isExecutable) return false;
                 
-                let pDate = null;
-                if (d.date) {
-                    const match = d.date.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-                    if (match) {
-                        let day = parseInt(match[1], 10);
-                        let month = parseInt(match[2], 10) - 1;
-                        let year = parseInt(match[3], 10);
-                        if (year < 100) year += 2000;
-                        pDate = new Date(year, month, day);
-                    }
-                }
-                
-                if (!pDate) return false;
-                
+                const pDate = d.scheduledStartTimestamp || d.createdAt || 0;
                 // Show if scheduled today or any day in the future
                 return pDate >= todayStart;
             });
@@ -866,8 +900,8 @@
             if (!ptw) return;
 
             document.getElementById('detailPtwNo').innerText = ptw.ptwNo;
-            document.getElementById('detailDate').innerText = (ptw.date || '').split(',')[1]?.trim() || ptw.date || 'Unknown Date';
-            document.getElementById('detailTime').innerText = `${ptw.startTime || '--:--'} - ${ptw.endTime || '--:--'}`;
+            document.getElementById('detailDate').innerText = formatEpochToDate(ptw.scheduledStartTimestamp);
+            document.getElementById('detailTime').innerText = `${formatEpochToTime(ptw.scheduledStartTimestamp)} - ${formatEpochToTime(ptw.scheduledEndTimestamp)}`;
             document.getElementById('detailScope').innerText = ptw.scope;
             document.getElementById('detailLocation').innerText = ptw.location;
             
@@ -880,9 +914,9 @@
             }
             
             // Workflow Tracking Population
-            document.getElementById('detailTrackRequester').innerText = ptw.requester || '-';
-            document.getElementById('detailTrackApprover').innerText = ptw.approvedBy ? ptw.approvedBy : 'Awaiting Approval';
-            document.getElementById('detailTrackOpener').innerText = ptw.openedBy ? ptw.openedBy : 'Awaiting Action';
+            document.getElementById('detailTrackRequester').innerText = ptw.requesterName || '-';
+            document.getElementById('detailTrackApprover').innerText = ptw.approvedByName ? ptw.approvedByName : 'Awaiting Approval';
+            document.getElementById('detailTrackOpener').innerText = ptw.openedByName ? ptw.openedByName : 'Awaiting Action';
             
             const closeRow = document.getElementById('trackCloseRow');
             const finalLabel = document.getElementById('detailTrackFinalLabel');
@@ -891,15 +925,15 @@
             if (ptw.ptwStatus === 'Closed') {
                 closeRow.classList.remove('hidden');
                 finalLabel.innerText = 'Closed By:';
-                finalUser.innerText = ptw.closedBy || '-';
+                finalUser.innerText = ptw.closedByName || '-';
             } else if (ptw.ptwStatus === 'Cancelled') {
                 closeRow.classList.remove('hidden');
                 finalLabel.innerText = 'Cancelled By:';
-                finalUser.innerText = ptw.cancelledBy || '-';
+                finalUser.innerText = ptw.cancelledByName || '-';
             } else if (ptw.ptwStatus === 'Rejected') {
                 closeRow.classList.remove('hidden');
                 finalLabel.innerText = 'Rejected By:';
-                finalUser.innerText = ptw.rejectedBy || '-';
+                finalUser.innerText = ptw.rejectedByName || '-';
             } else {
                 closeRow.classList.add('hidden');
             }
@@ -909,8 +943,8 @@
             badge.innerText = ptw.ptwStatus;
 
             document.getElementById('tagCritical').style.display = ptw.critical ? 'flex' : 'none';
-            document.getElementById('valLoto').innerText = ptw.loto;
-            document.getElementById('valBypass').innerText = ptw.bypass;
+            document.getElementById('valLoto').innerText = ptw.lotoRequired ? 'Yes' : 'No';
+            document.getElementById('valBypass').innerText = ptw.bypassRequired ? 'Yes' : 'No';
 
             // Generate Action Buttons based on RBAC and Status
             const footer = document.getElementById('mobileActionFooter');
@@ -1000,12 +1034,12 @@
             let updatePayload = {};
             const userFullName = loggedInUser?.fullName || 'System';
 
-            if (pendingAction === 'Reject') { newStatus = 'Rejected'; actionText = 'was Rejected by'; logType = 'reject'; updatePayload.rejectedBy = userFullName; }
-            else if (pendingAction === 'Approve_PTW') { newStatus = 'Approved'; actionText = 'received Approval from'; logType = 'approve'; updatePayload.approvedBy = userFullName; updatePayload.approver = userFullName; }
-            else if (pendingAction === 'Open_PTW') { newStatus = 'Open'; actionText = 'was Opened for execution by'; logType = 'approve'; updatePayload.openedBy = userFullName; }
-            else if (pendingAction === 'Cancel') { newStatus = 'Cancelled'; actionText = 'was Cancelled during execution by'; logType = 'reject'; updatePayload.cancelledBy = userFullName; }
-            else if (pendingAction === 'Reject_Execution') { newStatus = 'Rejected'; actionText = 'was Rejected during execution by'; logType = 'reject'; updatePayload.rejectedBy = userFullName; }
-            else if (pendingAction === 'Close') { newStatus = 'Closed'; actionText = 'was Closed by'; logType = 'close'; updatePayload.closedBy = userFullName; }
+            if (pendingAction === 'Reject') { newStatus = 'Rejected'; actionText = 'was Rejected by'; logType = 'reject'; updatePayload.rejectedByName = userFullName; }
+            else if (pendingAction === 'Approve_PTW') { newStatus = 'Approved'; actionText = 'received Approval from'; logType = 'approve'; updatePayload.approvedByName = userFullName; }
+            else if (pendingAction === 'Open_PTW') { newStatus = 'Open'; actionText = 'was Opened for execution by'; logType = 'approve'; updatePayload.openedByName = userFullName; }
+            else if (pendingAction === 'Cancel') { newStatus = 'Cancelled'; actionText = 'was Cancelled during execution by'; logType = 'reject'; updatePayload.cancelledByName = userFullName; }
+            else if (pendingAction === 'Reject_Execution') { newStatus = 'Rejected'; actionText = 'was Rejected during execution by'; logType = 'reject'; updatePayload.rejectedByName = userFullName; }
+            else if (pendingAction === 'Close') { newStatus = 'Closed'; actionText = 'was Closed by'; logType = 'close'; updatePayload.closedByName = userFullName; }
 
             updatePayload.ptwStatus = newStatus;
 
@@ -1019,9 +1053,9 @@
             }
 
             try {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'ptws', ptw.id);
+                const docRef = doc(db, 'ptws', ptw.id);
                 await updateDoc(docRef, updatePayload);
-                logActivity(ptw.ptwNo, actionText, userFullName, logType);
+                logActivity(ptw.ptwNo, actionText, logType);
             } catch (error) {
                 console.error("Error updating doc:", error);
                 alert("Failed to update status.");
@@ -1034,13 +1068,6 @@
         function openAddPtwModal() {
             const modal = document.getElementById('addPtwModal');
             document.getElementById('addPtwForm').reset();
-            
-            // Pre-fill requester with logged in user
-            const requesterField = document.getElementById('newRequester');
-            if (requesterField) {
-                requesterField.value = loggedInUser?.fullName || '';
-            }
-            
             modal.classList.remove('hidden');
             setTimeout(() => modal.classList.add('active'), 10);
         }
@@ -1076,95 +1103,86 @@
             event.preventDefault();
             
             const rawDate = document.getElementById('newDate').value;
-            const startTime = document.getElementById('newStartTime').value;
+            const startTimeStr = document.getElementById('newStartTime').value;
+            const endTimeStr = document.getElementById('newEndTime').value;
             
-            if (!rawDate || !startTime) {
-                showNotification("Missing Information", "Please provide both Date and Start Time.");
+            if (!rawDate || !startTimeStr || !endTimeStr) {
+                showNotification("Missing Information", "Please provide Date, Start Time and End Time.");
                 return;
             }
 
-            // Prevent timezone shifting by parsing YYYY-MM-DD manually into a local date
-            const [yyyy, mm, dd] = rawDate.split('-');
-            const d = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
-
-            // --- Cross-Browser Safe Past Date/Time Validation ---
-            const [startH, startM] = startTime.split(':').map(Number);
-            const selectedDateTime = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd), startH, startM);
-            const now = new Date();
+            const startT = new Date(`${rawDate}T${startTimeStr}`).getTime();
+            const endT = new Date(`${rawDate}T${endTimeStr}`).getTime();
+            const now = Date.now();
             
-            if (selectedDateTime < now) {
+            if (startT < now) {
                 showNotification("Invalid Time Selection", "Cannot create a Permit to Work in the past. Please select a valid future date and start time.");
                 return;
             }
 
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const formattedDate = `${days[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
-
-            // Dynamic FMD-YY-MM-XXX numbering logic
-            const currentYearStr = String(now.getFullYear()).slice(-2);
-            const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0');
-            const prefix = `FMD-${currentYearStr}-${currentMonthStr}-`;
-
-            let newIdNum = 1;
-            const currentMonthPtws = ptwData.filter(p => p.ptwNo && p.ptwNo.startsWith(prefix));
-            if (currentMonthPtws.length > 0) {
-                const ids = currentMonthPtws.map(p => parseInt(p.ptwNo.split('-').pop() || '0'));
-                newIdNum = Math.max(...ids) + 1;
-            }
-            const newPtwNo = `${prefix}${String(newIdNum).padStart(3, '0')}`;
-
             const newPtw = {
-                ptwNo: newPtwNo,
-                date: formattedDate,
-                startTime: document.getElementById('newStartTime').value,
-                endTime: document.getElementById('newEndTime').value,
-                requester: document.getElementById('newRequester') ? document.getElementById('newRequester').value : (loggedInUser?.fullName || 'System'),
+                requesterUid: loggedInUser.id,
+                requesterName: loggedInUser.fullName,
                 workOwner: document.getElementById('newWorkOwner').value,
                 scope: document.getElementById('newScope').value,
                 location: document.getElementById('newLocation').value,
                 critical: document.getElementById('newCritical').value === 'true',
-                loto: document.getElementById('newLoto').value,
-                bypass: document.getElementById('newBypass').value,
-                jobProgress: '0%',
+                lotoRequired: document.getElementById('newLoto').value === 'Yes',
+                bypassRequired: document.getElementById('newBypass').value === 'Yes',
                 ptwStatus: 'Pending Review',
-                reviewer: '',
-                approver: '',
-                createdAt: new Date().toISOString()
+                scheduledStartTimestamp: startT,
+                scheduledEndTimestamp: endT,
+                createdAt: now
             };
 
-            closeAddPtwModal();
-
-            if (isOfflineMode) {
-                ptwData.push(newPtw);
-                ptwData.sort((a, b) => b.ptwNo.localeCompare(a.ptwNo));
-                updateUI();
-                return;
-            }
+            const currentYearMonth = `${new Date().getFullYear()}_${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+            const prefix = `FMD-${String(new Date().getFullYear()).slice(-2)}-${String(new Date().getMonth() + 1).padStart(2, '0')}-`;
 
             try {
-                const ptwsRef = collection(db, 'artifacts', appId, 'public', 'data', 'ptws');
-                await addDoc(ptwsRef, newPtw);
-                logActivity(newPtwNo, 'was submitted for review by', loggedInUser?.fullName || newPtw.requester, 'create');
-            } catch (error) {
-                console.error("Error adding doc:", error);
-                alert("Failed to submit PTW.");
+                if (isOfflineMode) {
+                    newPtw.ptwNo = prefix + String(ptwData.length + 1).padStart(3, '0');
+                    ptwData.push(newPtw);
+                    logActivity(newPtw.ptwNo, 'was submitted by', 'create');
+                } else {
+                    const counterRef = doc(db, 'system_counters', 'ptw_sequences');
+                    await runTransaction(db, async (transaction) => {
+                        const counterDoc = await transaction.get(counterRef);
+                        let nextSeq = 1;
+                        if (counterDoc.exists() && counterDoc.data()[currentYearMonth]) {
+                            nextSeq = counterDoc.data()[currentYearMonth] + 1;
+                        }
+                        
+                        const ptwNo = prefix + String(nextSeq).padStart(3, '0');
+                        newPtw.ptwNo = ptwNo;
+                        
+                        transaction.set(counterRef, { [currentYearMonth]: nextSeq }, { merge: true });
+                        transaction.set(doc(collection(db, 'ptws')), newPtw);
+                    });
+                    logActivity(newPtw.ptwNo, 'was submitted by', 'create');
+                }
+                closeAddPtwModal();
+                showNotification("Success", `PTW registered successfully.`);
+            } catch (e) {
+                console.error(e);
+                showNotification("Error", "Failed to register PTW.");
             }
         }
         window.submitNewPtw = submitNewPtw;
 
-        async function logActivity(ptwNo, action, user, type) {
+        async function logActivity(ptwNo, action, logType) {
             const logEntry = {
                 ptwNo,
                 action,
-                user: user || 'System',
-                timestamp: new Date().toISOString(),
-                type
+                userName: loggedInUser?.fullName || 'System',
+                userUid: loggedInUser?.id || 'sys',
+                timestamp: Date.now(),
+                logType
             };
 
             if (isOfflineMode) return;
 
             try {
-                const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'audit_logs');
+                const logsRef = collection(db, 'audit_logs');
                 await addDoc(logsRef, logEntry);
             } catch (error) {
                 console.error("Failed to save audit log: ", error);
