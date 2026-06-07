@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FMPermits Mobile V2</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -25,9 +24,7 @@
             }
         }
     </script>
-    <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
@@ -58,7 +55,6 @@
 </head>
 <body class="bg-zinc-950 text-zinc-300 h-screen w-screen overflow-hidden flex flex-col selection:bg-blue-500/30 relative">
 
-    <!-- LOGIN SCREEN -->
     <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950 px-4">
         <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm">
             <div class="flex flex-col items-center justify-center mb-8">
@@ -84,10 +80,8 @@
         </div>
     </div>
 
-    <!-- MAIN APP SHELL -->
     <div id="mainApp" class="hidden flex-1 flex flex-col w-full h-full overflow-hidden relative">
         
-        <!-- App Header -->
         <header class="h-16 bg-zinc-900/80 backdrop-blur-md border-b border-zinc-800 flex items-center justify-between px-4 z-10 shrink-0 sticky top-0">
             <div class="flex items-center gap-2">
                 <i data-lucide="shield-check" class="w-6 h-6 text-blue-500"></i>
@@ -98,10 +92,8 @@
             </button>
         </header>
 
-        <!-- View Container -->
         <main class="flex-1 overflow-y-auto pb-24 hide-scrollbar relative bg-zinc-950" id="mainContentArea">
             
-            <!-- View: Home / Dashboard (Merged with Live Execution) -->
             <div id="view-home" class="view-section p-4 space-y-4">
                 <div class="bg-blue-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden">
                     <div class="relative z-10">
@@ -135,11 +127,9 @@
                 </div>
                 
                 <div id="homePermitList" class="space-y-3 pb-8">
-                    <!-- Cards injected via JS -->
-                </div>
+                    </div>
             </div>
 
-            <!-- View: All Permits -->
             <div id="view-all" class="view-section p-4 space-y-4 hidden">
                 <div class="flex gap-2 mb-2">
                     <div class="relative flex-1">
@@ -157,11 +147,9 @@
                     </select>
                 </div>
                 <div id="allPermitList" class="space-y-3 pb-8">
-                    <!-- Cards injected via JS -->
-                </div>
+                    </div>
             </div>
 
-            <!-- View: My Approvals -->
             <div id="view-approvals" class="view-section p-4 space-y-4 hidden">
                 <div class="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 flex items-center justify-between mb-2">
                     <div>
@@ -171,11 +159,9 @@
                     <div class="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm" id="approvalsBadgeLg">0</div>
                 </div>
                 <div id="approvalsPermitList" class="space-y-3">
-                    <!-- Cards injected via JS -->
-                </div>
+                    </div>
             </div>
 
-            <!-- View: Overdue -->
             <div id="view-overdue" class="view-section p-4 space-y-4 hidden">
                 <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between mb-2">
                     <div>
@@ -188,18 +174,15 @@
                     <input type="text" id="searchOverdue" placeholder="Search overdue PTWs..." oninput="renderOverdue()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-red-500">
                 </div>
                 <div id="overduePermitList" class="space-y-3">
-                    <!-- Cards injected via JS -->
-                </div>
+                    </div>
             </div>
 
         </main>
 
-        <!-- Floating Action Button (Add PTW) -->
         <button onclick="openAddPtwModal()" id="fabAddPtw" class="fab absolute bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white transition-transform active:scale-95 z-20">
             <i data-lucide="plus" class="w-6 h-6"></i>
         </button>
 
-        <!-- Bottom Navigation Bar -->
         <nav class="h-16 bg-zinc-900 border-t border-zinc-800 flex items-center justify-around px-2 z-20 shrink-0 pb-safe">
             <button onclick="switchTab('home')" id="tab-home" class="nav-tab flex flex-col items-center justify-center w-16 h-full text-blue-500 gap-1">
                 <i data-lucide="home" class="w-5 h-5"></i>
@@ -222,21 +205,16 @@
         </nav>
     </div>
 
-    <!-- FULL SCREEN MODAL: PTW Details -->
     <div id="ptwDetailsModal" class="fixed inset-0 bg-zinc-950 z-[60] flex flex-col modal-slide-up hidden">
-        <!-- Header -->
         <div class="h-14 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 bg-zinc-900">
             <button onclick="closePtwDetails()" class="p-2 -ml-2 text-zinc-400 active:text-zinc-100 transition-colors">
                 <i data-lucide="arrow-left" class="w-5 h-5"></i>
             </button>
             <h2 class="font-semibold text-zinc-100 text-sm font-mono" id="detailPtwNo">PTW Details</h2>
-            <div class="w-9"></div> <!-- spacer -->
-        </div>
+            <div class="w-9"></div> </div>
         
-        <!-- Content -->
         <div class="flex-1 overflow-y-auto p-4 space-y-6 hide-scrollbar pb-24">
             
-            <!-- Status Header -->
             <div class="flex items-center justify-between">
                 <span id="detailStatusBadge" class="px-2.5 py-1 rounded-md text-xs font-medium border">Status</span>
                 <span class="text-xs text-zinc-500 flex items-center gap-1">
@@ -245,13 +223,11 @@
                 </span>
             </div>
             
-            <!-- Overdue Warning Banner (Hidden by default) -->
             <div id="detailOverdueWarning" class="hidden bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3 mt-4">
                 <i data-lucide="alert-circle" class="w-5 h-5 text-red-500 shrink-0"></i>
                 <p class="text-xs text-red-400 font-medium">This permit is OVERDUE. The scheduled execution time has passed.</p>
             </div>
 
-            <!-- Main Info -->
             <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4">
                 <div>
                     <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Scope of Work</label>
@@ -274,9 +250,12 @@
                         <p class="text-sm text-zinc-300 mt-0.5 truncate" id="detailWorkOwner"></p>
                     </div>
                 </div>
+                <div class="pt-2 border-t border-zinc-800/50">
+                    <label class="text-[11px] text-zinc-500 uppercase tracking-wider">Person In Charge (PIC)</label>
+                    <p class="text-sm text-zinc-300 mt-0.5" id="detailPic"></p>
+                </div>
             </div>
 
-            <!-- Safety Tags -->
             <div>
                 <label class="text-xs font-semibold text-zinc-400 mb-2 block">Safety Requirements</label>
                 <div class="flex flex-wrap gap-2">
@@ -286,7 +265,6 @@
                 </div>
             </div>
             
-            <!-- Workflow Tracking -->
             <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-sm space-y-3">
                 <div class="flex justify-between">
                     <span class="text-zinc-500">Requester:</span>
@@ -307,25 +285,20 @@
             </div>
         </div>
 
-        <!-- Sticky Bottom Action Footer -->
         <div id="mobileActionFooter" class="absolute bottom-0 left-0 right-0 p-4 bg-zinc-950 border-t border-zinc-800 flex gap-3 pb-safe shrink-0">
-            <!-- Buttons injected dynamically -->
-        </div>
+            </div>
     </div>
 
-    <!-- FULL SCREEN MODAL: Add PTW -->
     <div id="addPtwModal" class="fixed inset-0 bg-zinc-950 z-[60] flex flex-col modal-slide-up hidden">
         <div class="h-14 border-b border-zinc-800 flex items-center justify-between px-4 shrink-0 bg-zinc-900">
             <button type="button" onclick="closeAddPtwModal()" class="p-2 -ml-2 text-zinc-400 active:text-zinc-100 transition-colors">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
             <h2 class="font-semibold text-zinc-100 text-sm">New Permit</h2>
-            <div class="w-9"></div> <!-- spacer -->
-        </div>
+            <div class="w-9"></div> </div>
         
         <div class="flex-1 overflow-y-auto p-4 hide-scrollbar">
             <form id="addPtwForm" onsubmit="submitNewPtw(event)" class="space-y-5 pb-8">
-                <!-- Date/Time -->
                 <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
                     <div>
                         <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Date</label>
@@ -343,7 +316,6 @@
                     </div>
                 </div>
 
-                <!-- Scope/Location -->
                 <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
                     <div>
                         <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Scope of Work</label>
@@ -355,7 +327,6 @@
                     </div>
                 </div>
 
-                <!-- Safety Settings -->
                 <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
                     <div class="flex items-center justify-between">
                         <label class="text-sm text-zinc-300">Critical Work</label>
@@ -380,7 +351,6 @@
                     </div>
                 </div>
 
-                <!-- Personnel -->
                 <div class="bg-zinc-900 p-4 rounded-xl border border-zinc-800 space-y-4">
                     <div>
                         <label class="block text-xs text-zinc-400 mb-1.5 uppercase tracking-wider">Work Owner</label>
@@ -395,7 +365,6 @@
         </div>
     </div>
 
-    <!-- Confirmation Modal (Action Dialog) -->
     <div id="actionConfirmModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center hidden opacity-0 transition-opacity px-4">
         <div class="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 transform scale-95 transition-transform" id="actionConfirmContent">
             <h3 class="text-lg font-bold text-zinc-100 mb-2">Confirm Action</h3>
@@ -408,7 +377,6 @@
         </div>
     </div>
 
-    <!-- Notification Modal -->
     <div id="notificationModal" class="fixed inset-0 z-[80] flex items-center justify-center hidden opacity-0 transition-opacity bg-black/70 backdrop-blur-sm px-4">
         <div class="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 transform scale-95 transition-transform" id="notificationModalContent">
             <div class="flex items-center gap-3 mb-4 text-orange-500">
@@ -420,7 +388,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
     <script type="importmap">
         {
             "imports": {
@@ -902,8 +869,16 @@
             document.getElementById('detailPtwNo').innerText = ptw.ptwNo;
             document.getElementById('detailDate').innerText = formatEpochToDate(ptw.scheduledStartTimestamp);
             document.getElementById('detailTime').innerText = `${formatEpochToTime(ptw.scheduledStartTimestamp)} - ${formatEpochToTime(ptw.scheduledEndTimestamp)}`;
+            
+            // Updating requested information strictly into the view
             document.getElementById('detailScope').innerText = ptw.scope;
             document.getElementById('detailLocation').innerText = ptw.location;
+            document.getElementById('detailRequester').innerText = ptw.requesterName || '-';
+            document.getElementById('detailWorkOwner').innerText = ptw.workOwner || '-';
+            
+            // Added PIC Assignment
+            const picDisplay = ptw.picName ? `${ptw.picName} ${ptw.picPhone ? '(' + ptw.picPhone + ')' : ''}` : 'Not Specified';
+            document.getElementById('detailPic').innerText = picDisplay;
             
             // Overdue Warning Check
             const overdueWarning = document.getElementById('detailOverdueWarning');
